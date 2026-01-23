@@ -13,7 +13,7 @@ A production-ready abuse detection system with real-time API, batch processing, 
 - **Real-time predictions** with calibrated probabilities
 - **Batch processing** for CSV files (analyst workflows)
 - **Rate limiting** (100 requests/minute per IP)
-- **Monitoring endpoint** (\`/metrics\`) with performance stats
+- **Monitoring endpoint** (`/metrics`) with performance stats
 - **Health checks** and request logging middleware
 
 ### ML Engineering
@@ -118,11 +118,11 @@ curl -X POST "http://localhost:8000/batch" \
 
 ## 🎓 Experience Context
 
-*This project demonstrates production deployment patterns I implemented for a national agency. Due to data sensitivity, the actual production code and data cannot be shared. This repository implements identical architecture using public datasets.*
+*This project demonstrates production deployment patterns implemented for an agency. Due to data sensitivity, the actual production code and data cannot be shared. This repository implements identical architecture using public datasets.*
 
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) file for details
 
 ---
-**Built with production ML considerations that matter in real deployments.**
+**Built with production ML considerations that followed a real deployment.**
