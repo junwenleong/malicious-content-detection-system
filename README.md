@@ -114,7 +114,7 @@ curl -X POST "http://localhost:8000/batch" \
 
 - [Deployment Guide](docs/DEPLOYMENT.md) - Production patterns and decisions
 - [API Documentation](http://localhost:8000/docs) - Interactive OpenAPI docs
-- [Model Training](notebooks/01_explore.ipynb) - Full analysis notebook
+- [Model Training](notebooks/abuse_detection_analysis.ipynb) - Full analysis notebook
 
 ## 🎓 Experience Context
 
@@ -128,4 +128,4 @@ MIT License - see [LICENSE](LICENSE) file for details
 **Built with production ML considerations that followed a real deployment.**
 
 ---
-**Note:** Model files (`.pkl`) are excluded from Git due to size. Run `notebooks/01_explore.ipynb` to train the model, or download from [Releases] when available.
+**Note:** Model files (`.pkl`) are excluded from Git due to size. Run `notebooks/abuse_detection_analysis.ipynb` to train the model, or download from [Releases] when available.
