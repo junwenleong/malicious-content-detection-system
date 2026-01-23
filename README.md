@@ -126,3 +126,6 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 ---
 **Built with production ML considerations that followed a real deployment.**
+
+---
+**Note:** Model files (`.pkl`) are excluded from Git due to size. Run `notebooks/01_explore.ipynb` to train the model, or download from [Releases] when available.
