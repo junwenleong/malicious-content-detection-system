@@ -1,3 +1,6 @@
+aiohappyeyeballs==2.6.1
+aiohttp==3.13.3
+aiosignal==1.4.0
 annotated-doc==0.0.4
 annotated-types==0.7.0
 anyio==4.12.1
@@ -18,16 +21,19 @@ click==8.3.1
 comm==0.2.3
 contourpy==1.3.3
 cycler==0.12.1
+datasets==4.5.0
 debugpy==1.8.19
 decorator==5.2.1
 defusedxml==0.7.1
+dill==0.4.0
 executing==2.2.1
 fastapi==0.128.0
 fastjsonschema==2.21.2
 filelock==3.20.3
 fonttools==4.61.1
 fqdn==1.5.1
-fsspec==2026.1.0
+frozenlist==1.8.0
+fsspec==2025.10.0
 h11==0.16.0
 hf-xet==1.2.0
 httpcore==1.0.9
@@ -65,6 +71,8 @@ matplotlib==3.10.8
 matplotlib-inline==0.2.1
 mistune==3.2.0
 mpmath==1.3.0
+multidict==6.7.0
+multiprocess==0.70.18
 nbclient==0.10.4
 nbconvert==7.16.6
 nbformat==5.10.4
@@ -83,9 +91,11 @@ pillow==12.1.0
 platformdirs==4.5.1
 prometheus_client==0.24.1
 prompt_toolkit==3.0.52
+propcache==0.4.1
 psutil==7.2.1
 ptyprocess==0.7.0
 pure_eval==0.2.3
+pyarrow==23.0.0
 pycparser==3.0
 pydantic==2.12.5
 pydantic_core==2.41.5
@@ -93,6 +103,7 @@ Pygments==2.19.2
 pyparsing==3.3.2
 python-dateutil==2.9.0.post0
 python-json-logger==4.0.0
+python-multipart==0.0.21
 PyYAML==6.0.3
 pyzmq==27.1.0
 referencing==0.37.0
@@ -112,6 +123,7 @@ six==1.17.0
 soupsieve==2.8.3
 stack-data==0.6.3
 starlette==0.50.0
+stellars_jupyterlab_darcula_theme==1.0.46
 sympy==1.14.0
 terminado==0.18.1
 threadpoolctl==3.6.0
@@ -133,3 +145,5 @@ webcolors==25.10.0
 webencodings==0.5.1
 websocket-client==1.9.0
 widgetsnbextension==4.0.15
+xxhash==3.6.0
+yarl==1.22.0
