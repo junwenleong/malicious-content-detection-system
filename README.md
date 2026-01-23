@@ -30,7 +30,7 @@ A production-ready abuse detection system demonstrating deployment patterns used
 ## 🚀 Quick Start
 
 ### Local Development
-\`\`\`bash
+```bash
 # Clone repository
 git clone https://github.com/junwenleong/abuse-detection-ml.git
 cd abuse-detection-ml
@@ -40,34 +40,34 @@ pip install -r requirements.txt
 
 # Start the API
 uvicorn api.app:app --reload --port 8000
-\`\`\`
+```
 
 ### Using Docker
-\`\`\`bash
+```bash
 docker build -t abuse-detector .
 docker run -p 8000:8000 abuse-detector
-\`\`\`
+```
 
 ## 📊 API Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/` | GET | API information |
-| `/predict` | POST | Real-time abuse detection |
-| `/batch` | POST | Process CSV files in bulk |
-| `/health` | GET | Service health status |
-| `/metrics` | GET | Performance metrics |
+| `` | GET | API information |
+| `predict` | POST | Real-time abuse detection |
+| `batch` | POST | Process CSV files in bulk |
+| `health` | GET | Service health status |
+| `metrics` | GET | Performance metrics |
 
 ### Example Usage
 **Single Prediction:**
-\`\`\`bash
+```bash
 curl -X POST "http://localhost:8000/predict" -H "Content-Type: application/json" -d '{"texts": ["Hello world", "Test message"]}'
-\`\`\`
+```
 
 **Batch Processing:**
-\`\`\`bash
+```bash
 curl -X POST "http://localhost:8000/batch" -F "file=@data.csv" -o predictions.csv
-\`\`\`
+```
 
 ## 🏗️ Architecture
 
