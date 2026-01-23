@@ -10,7 +10,6 @@ ENV/
 
 # Jupyter
 .ipynb_checkpoints/
-*.ipynb_checkpoints
 
 # Data
 data/raw/*
@@ -36,8 +35,9 @@ __pycache__/
 *.pyc
 
 # Jupyter
-*.ipynb
 
 # Test files
 *.csv
 
+# Jupyter auto-save files (notebooks in notebooks/ are tracked)
+.ipynb_checkpoints/
