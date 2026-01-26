@@ -41,3 +41,8 @@ __pycache__/
 
 # Jupyter auto-save files (notebooks in notebooks/ are tracked)
 .ipynb_checkpoints/
+
+# Allow committed demo model artifacts
+!malicious_content_detector_calibrated.pkl
+!malicious_content_detector_config.pkl
+
