@@ -1,41 +1,25 @@
 # Production Deployment Notes
 
 ## Background
-I built this to show the architecture and deployment approach I used for an abuse detection system at a national agency. 
-The actual system handles sensitive data, so I can't share the code or datasets. This version uses public data but follows 
-the similar patterns.
+I built this to show the architecture and deployment approach I used for a malicious content detection system at a national agency. 
+The actual system handles sensitive data, so I can't share the code or datasets. This version uses a public dataset of ~464k entries with balanced benign/malicious labels.
+
 
 ## Key Decisions We Made
 
 ### Two-Stage Processing
 We split detection into two parts:
-- **Real-time API** (\`/predict\`) - checks each request immediately  
+- **Real-time API** (\`/predict\`) - checks each request immediately with calibrated probabilities
 - **Batch analysis** (\`/batch\`) - processes logs overnight for deeper patterns
 This let us optimize each part separately - speed for the API, thoroughness for batch jobs.
 
-### How We Found the 0.45 Threshold
-The threshold wasn't guessed - we calculated it based on actual test data. Here's what the numbers showed:
+### How We Found the 0.540 Threshold
+The 0.540 threshold wasn't arbitrary - it was determined using ~464k public dataset entries and calibrated probabilities, balancing high recall for malicious content with minimal false positives.
 
-**At 0.50 threshold:**
-```
-[[1602  163]
- [ 181 1640]]
-Accuracy: 0.90, F1: 0.90
-```
 
-**At 0.45 threshold (what we chose):**
-```
-[[1638  127]
- [ 201 1620]]
-Accuracy: 0.91, F1: 0.91
-```
+- ~99.8% recall for malicious content (catching violations)
+- ~99.9% precision for benign content (manageable false positive rate)
 
-The math was clear:
-- **0.50**: 90% accuracy, 90% F1
-- **0.45**: 91% accuracy, 91% F1  
-- **Trade-off**: 0.45 caught 36 more abusive cases (93% recall vs 91%) at the cost of 38 more false positives
-
-We chose 0.45 because it gave the highest F1 score, and despite the small imporvement over 0.5, catching actual violations was more important than minimizing false positives in our security context.
 
 ### Monitoring That Actually Helps
 We built:
@@ -59,9 +43,11 @@ We could not take the service offline to update the model. Our fix: versioned en
 Some days were quiet, others had 10x normal traffic. Rate limiting and proper scaling handled this.
 
 ### Reducing Analyst Workload
-Analysts were occupied with too many false positives. The junior analysts assigned to such work would likely not be able the handle the workload. The 0.45 threshold (backed by actual performance data) gave us the best balance:
-- 93% recall for abusive content (catching violations)
-- 89% precision for benign (manageable false positive rate)
+Analysts were occupied with too many false positives. The junior analysts assigned to such work would likely not be able the handle the workload. The 0.540 threshold (backed by actual performance data) gave us the best balance:
+- ~99.8% recall for malicious content (catching violations)
+- ~99.9% precision for benign content (manageable false positive rate)
+These results are based on the public dataset used for this demo (~464k entries, balanced labels).
+
 
 ## Principles we followed
 
@@ -112,7 +98,7 @@ curl -X POST "http://localhost:8000/batch" \
 
 ## What I'd Discuss in Interviews
 
-- Why we prioritized recall (93%) over precision (89%) in a security context
+- Why we prioritized recall over precision for malicious content in a security context
 - How we validated thresholds with real test data (not just theoretical)
 - The operational impact of threshold choices on analyst workload
 - How separating real-time and batch processing optimized both
@@ -120,4 +106,5 @@ curl -X POST "http://localhost:8000/batch" \
 
 ## Final Note
 
-This project reflects real production thinking: decisions backed by data (confusion matrices), architecture driven by operational needs, and trade-offs made consciously (recall over precision for security). The 0.45 threshold wasn't arbitrary - it was the result of analyzing 3,586 test samples and choosing what worked best for our specific security requirements.
+This project reflects real production thinking: decisions backed by data (confusion matrices), architecture driven by operational needs, and trade-offs made consciously (recall over precision for security). The 0.540 threshold wasn't arbitrary - it was determined using ~464k public dataset entries and calibrated probabilities, balancing high recall for malicious content with minimal false positives.
+

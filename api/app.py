@@ -19,8 +19,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # --- Load model and config ---
-MODEL_PATH = "abuse_detector_calibrated.pkl"
-CONFIG_PATH = "abuse_detector_config.pkl"
+MODEL_PATH = "malicious_content_detector_calibrated.pkl"
+CONFIG_PATH = "malicious_content_detector_config.pkl"
 
 if not os.path.exists(MODEL_PATH) or not os.path.exists(CONFIG_PATH):
     raise FileNotFoundError("Model files not found. Train the model first.")
@@ -30,9 +30,9 @@ config = joblib.load(CONFIG_PATH)
 logger.info("Model and config loaded successfully")
 
 app = FastAPI(
-    title="Abuse Detection API",
+    title="Malicious Content Detection API",
     version="2.0",
-    description="Production-grade abuse detection for API monitoring"
+    description="Production-grade malicious content detection"
 )
 
 # --- Metrics tracking ---
@@ -116,7 +116,7 @@ class PredictRequest(BaseModel):
 class PredictionResult(BaseModel):
     text: str
     label: str
-    probability_abusive: float
+    probability_malicious: float
     threshold: float
     latency_ms: Optional[float] = None
 
@@ -125,8 +125,8 @@ class PredictResponse(BaseModel):
     metadata: dict
 
 # --- Core prediction function ---
-def predict_abuse(texts: List[str]):
-    """Predict abuse labels and probabilities."""
+def predict_malicious_content(texts: List[str]):
+    """Predict malicious content labels and probabilities."""
     start_time = time.time()
     
     pos_class = config['positive_class']
@@ -134,7 +134,7 @@ def predict_abuse(texts: List[str]):
     
     try:
         probs = model.predict_proba(texts)[:, pos_index]
-        labels = ['ABUSIVE' if p >= config['optimal_threshold'] else 'BENIGN' for p in probs]
+        labels = ['MALICIOUS' if p >= config['optimal_threshold'] else 'BENIGN' for p in probs]
         
         latency = time.time() - start_time
         
@@ -164,7 +164,7 @@ async def log_requests(request: Request, call_next):
 @app.get("/")
 def root():
     return {
-        "message": "Abuse Detection API - Production Grade",
+        "message": "Malicious Content Detection API - Production Grade",
         "version": "2.0",
         "endpoints": {
             "predict": "/predict",
@@ -199,7 +199,7 @@ def predict(request: PredictRequest, req: Request):
         raise HTTPException(status_code=429, detail="Rate limit exceeded. Max 100 requests per minute.")
     
     try:
-        labels, probs, latency = predict_abuse(request.texts)
+        labels, probs, latency = predict_malicious_content(request.texts)
         
         # Record metrics
         for label in labels:
@@ -209,7 +209,7 @@ def predict(request: PredictRequest, req: Request):
             PredictionResult(
                 text=text[:100] + "..." if len(text) > 100 else text,  # Truncate in response
                 label=label,
-                probability_abusive=float(prob),
+                probability_malicious=float(prob),
                 threshold=config['optimal_threshold'],
                 latency_ms=latency * 1000 / len(labels)
             )
@@ -222,7 +222,7 @@ def predict(request: PredictRequest, req: Request):
             predictions=predictions,
             metadata={
                 "total_items": len(predictions),
-                "abusive_count": sum(1 for label in labels if label == 'ABUSIVE'),
+                "malicious_count": sum(1 for label in labels if label == 'MALICIOUS'),
                 "benign_count": sum(1 for label in labels if label == 'BENIGN'),
                 "total_latency_ms": latency * 1000
             }
@@ -269,7 +269,7 @@ async def batch_predict(file: UploadFile = File(...)):
         logger.info(f"Processing batch of {len(texts)} texts from {file.filename}")
         
         # Predict
-        labels, probs, latency = predict_abuse(texts)
+        labels, probs, latency = predict_malicious_content(texts)
         
         # Record metrics
         metrics.record_batch(labels, latency)
@@ -277,7 +277,7 @@ async def batch_predict(file: UploadFile = File(...)):
         # Create response CSV
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(['text', 'label', 'probability_abusive', 'threshold'])
+        writer.writerow(['text', 'label', 'probability_malicious', 'threshold'])
         
         for text, label, prob in zip(texts, labels, probs):
             writer.writerow([text, label, f"{prob:.4f}", config['optimal_threshold']])
