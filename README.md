@@ -1,39 +1,22 @@
-# 🚀 Production-Grade Abuse Detection API
+# Malicious Content Detection API
 
-[![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
-[![Python](https://img.shields.io/badge/Python-3.9+-blue?style=for-the-badge&logo=python)](https://www.python.org/)
-[![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?style=for-the-badge&logo=scikit-learn)](https://scikit-learn.org/)
-[![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker)](https://www.docker.com/)
-
-A production-ready abuse detection system with real-time API, batch processing, and comprehensive monitoring. Demonstrates deployment patterns used in national security contexts using public datasets.
+A production-ready API for detecting malicious content with real-time predictions, batch processing, and monitoring. Uses a large public dataset (~464k entries) with balanced benign and malicious labels.
 
 ## 🔥 Features
 
 ### Production-Ready API
 - **Real-time predictions** with calibrated probabilities
 - **Batch processing** for CSV files (analyst workflows)
-- **Rate limiting** (100 requests/minute per IP)
 - **Monitoring endpoint** (`/metrics`) with performance stats
-- **Health checks** and request logging middleware
-
-### ML Engineering
-- **Calibrated logistic regression** with F1-optimized threshold (0.45)
-- **TF-IDF features** with hyperparameter tuning
-- **Model serialization** with joblib for deployment
-- **Precision-recall optimization** (92% recall, 88% precision)
-
-### Deployment Ready
-- **Docker containerization** with production-ready config
-- **FastAPI** with auto-generated OpenAPI docs
-- **Production monitoring patterns** (metrics, logging, health checks)
+- **Docker containerized for easy deployment
 
 ## 🚀 Quick Start
 
 ### Local Development
 ```bash
 # Clone repository
-git clone https://github.com/junwenleong/abuse-detection-ml.git
-cd abuse-detection-ml
+git clone https://github.com/junwenleong/malicious-content-detection-system.git
+cd malicious-content-detection-system
 
 # Install dependencies
 pip install -r requirements.txt
@@ -45,8 +28,8 @@ uvicorn api.app:app --reload --port 8000
 ### Using Docker
 ```bash
 # Build and run
-docker build -t abuse-detector .
-docker run -p 8000:8000 abuse-detector
+docker build -t malicious-content-detector .
+docker run -p 8000:8000 malicious-content-detector
 ```
 
 ## 📊 API Endpoints
@@ -54,10 +37,10 @@ docker run -p 8000:8000 abuse-detector
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/` | GET | API information |
-| `/predict` | POST | Real-time abuse detection |
-| `/batch` | POST | Process CSV files in bulk |
-| `/health` | GET | Service health status |
-| `/metrics` | GET | Performance metrics |
+| `/predict` | POST | Single text prediction |
+| `/batch` | POST | Batch CSV predictions |
+| `/health` | GET | Health check |
+| `/metrics` | GET | Monitoring metrics |
 
 ### Example Usage
 **Single Prediction:**
@@ -67,7 +50,7 @@ curl -X POST "http://localhost:8000/predict" \
   -d '{"texts": ["Hello world", "Test message here"]}'
 ```
 
-**Batch Processing:**
+**Batch Prediction:**
 ```bash
 curl -X POST "http://localhost:8000/batch" \
   -F "file=@your_data.csv" \
@@ -77,31 +60,14 @@ curl -X POST "http://localhost:8000/batch" \
 ## 🏗️ Architecture
 
 **Two-stage detection approach:**
-1. **Stage 1**: Real-time classification (FastAPI endpoint)
-2. **Stage 2**: Batch session analysis (CSV processing)
+1. **Stage 1**: Real-time FastAPI predictions
+2. **Stage 2**: Batch CSV processing for analysts
 
 **Key design decisions:**
-- **0.45 threshold** (F1-optimized, 92% recall, 88% precision)
-- **Production monitoring** (request logging, metrics endpoint)
-- **Rate limiting** (prevent system abuse)
-- **Batch CSV processing** (analyst-friendly workflows)
+- TF-IDF features + logistic regression
+- Hyperparameter tuning via GridSearchCV
+- Model calibration for reliable probabilities
 
-## 🎯 Use Cases
-
-- **API Abuse Detection**: Monitor user-generated content
-- **Trust & Safety**: Identify abusive patterns
-- **Security Monitoring**: Detect malicious intent
-- **Content Moderation**: Automated policy violation detection
-
-## 📈 Performance (Test Set: 3,586 samples)
-
-| Metric | Value |
-|--------|-------|
-| **Accuracy** | 91% |
-| **Recall (ABUSIVE)** | 93% |
-| **Precision (ABUSIVE)** | 89% |
-| **F1 Score** | 91% |
-| **Latency** | < 50ms per prediction |
 
 ## 🔧 Technical Stack
 
@@ -114,18 +80,19 @@ curl -X POST "http://localhost:8000/batch" \
 
 - [Deployment Guide](docs/DEPLOYMENT.md) - Production patterns and decisions
 - [API Documentation](http://localhost:8000/docs) - Interactive OpenAPI docs
-- [Model Training](notebooks/abuse_detection_analysis.ipynb) - Full analysis notebook
+- [Model Training](notebooks/amalicious_content_detection_analysis.ipynb) - Full analysis notebook
 
 ## 🎓 Experience Context
 
-*This project demonstrates production deployment patterns implemented for an agency. Due to data sensitivity, the actual production code and data cannot be shared. This repository implements identical architecture using public datasets.*
+*This project demonstrates production deployment patterns implemented for an agency. Due to data sensitivity, the actual production code and data cannot be shared. This repository implements identical architecture using public datasets for malicious content detection.*
 
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) file for details
 
 ---
-**Built with production ML considerations that followed a real deployment.**
+**Designed with production-ready ML practices.**
+
 
 ---
 **Note:** Model files (`.pkl`) are excluded from Git due to size. Run `notebooks/abuse_detection_analysis.ipynb` to train the model, or download from [Releases] when available.
