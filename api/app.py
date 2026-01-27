@@ -19,8 +19,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # --- Load model and config ---
-MODEL_PATH = "malicious_content_detector_calibrated.pkl"
-CONFIG_PATH = "malicious_content_detector_config.pkl"
+MODEL_PATH = "models/malicious_content_detector_calibrated.pkl"
+CONFIG_PATH = "models/malicious_content_detector_config.pkl"
 
 if not os.path.exists(MODEL_PATH) or not os.path.exists(CONFIG_PATH):
     raise FileNotFoundError("Model files not found. Train the model first.")
@@ -32,7 +32,11 @@ logger.info("Model and config loaded successfully")
 app = FastAPI(
     title="Malicious Content Detection API",
     version="2.0",
-    description="Production-grade malicious content detection"
+    description=(
+        "ML-based malicious content detection for agency's LLM. "
+        "Provides real-time predictions and batch processing for abuse detection in text-based APIs. "
+        "Model: TF-IDF + Calibrated Logistic Regression."
+    )
 )
 
 # --- Metrics tracking ---
