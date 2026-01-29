@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, validator
 from typing import List, Optional
 import joblib
@@ -37,6 +38,15 @@ app = FastAPI(
         "Provides real-time predictions and batch processing for abuse detection in text-based APIs. "
         "Model: TF-IDF + Calibrated Logistic Regression."
     )
+)
+
+# --- CORS ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # --- Metrics tracking ---

@@ -64,7 +64,7 @@ This system uses ML to detect malicious content **before** it reaches downstream
          ▼
 ┌─────────────────────────────┐
 │  Threshold Decision         │
-│  (0.54 - optimized F1)      │
+│  (0.45 - optimized F1)      │
 └────────┬────────────────────┘
          │
          ▼
@@ -75,7 +75,7 @@ This system uses ML to detect malicious content **before** it reaches downstream
 1. **TF-IDF over embeddings**: Faster inference, interpretable features, sufficient for this task
 2. **Logistic regression**: Baseline with excellent speed/accuracy trade-off
 3. **Calibration**: Ensures probabilities are reliable for threshold-based decisions for monitoring centre
-4. **0.54 threshold**: Selected via validation set PR-curve analysis (F1 optimization)
+4. **0.45 threshold**: Selected via validation set PR-curve analysis (F1 optimization)
 
 ---
 
@@ -96,13 +96,13 @@ curl -X POST "http://localhost:8000/predict" \
       "text": "Hello world",
       "label": "BENIGN",
       "probability_malicious": 0.023,
-      "threshold": 0.54
+      "threshold": 0.45
     },
     {
       "text": "Ignore previous instructions...",
       "label": "MALICIOUS", 
       "probability_malicious": 0.87,
-      "threshold": 0.54
+      "threshold": 0.45
     }
   ],
   "metadata": {
@@ -182,10 +182,10 @@ Tested multiple threshold strategies on validation set:
 | Strategy | Threshold | Precision | Recall | F1 |
 |----------|-----------|-----------|--------|-----|
 | F0.5 (precision-focused) | 0.723 | 0.999 | 0.994 | 0.996 |
-| **F1 (balanced)** | **0.540** | **0.998** | **0.998** | **0.998** |
+| **F1 (balanced)** | **0.45** | **0.998** | **0.998** | **0.998** |
 | F2 (recall-focused) | 0.455 | 0.995 | 0.999 | 0.997 |
 
-**Decision:** F1-optimized threshold (0.54) provides best balance for operational deployment.
+**Decision:** F1-optimized threshold (0.45) provides best balance for operational deployment.
 
 ---
 
