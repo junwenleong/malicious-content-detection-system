@@ -143,7 +143,13 @@ curl http://localhost:8000/metrics
 }
 ```
 
-### 4. Production Safeguards
+### 4. Demo UI (Streamlit)
+Run a lightweight demo UI for interactive testing:
+```bash
+streamlit run demo_ui.py
+```
+
+### 5. Production Safeguards
 - **Rate limiting**: 100 requests/minute per IP
 - **Input validation**: Max 10k chars per text, max 100 texts per batch
 - **Health checks**: `/health` endpoint for load balancer integration (with plans to be incorporated with AWS ELB in future)
@@ -243,7 +249,14 @@ jupyter notebook notebooks/malicious_content_detection_analysis.ipynb
 uvicorn api.app:app --reload --port 8000
 ```
 
-### 4. Test API
+### 4. Run Demo UI (Streamlit)
+```bash
+streamlit run demo_ui.py
+```
+
+Open the UI in your browser and make sure the API from step 3 is running.
+
+### 5. Test API
 ```bash
 # Health check
 curl http://localhost:8000/health
@@ -259,7 +272,7 @@ curl -X POST "http://localhost:8000/batch" \
   -o predictions.csv
 ```
 
-### 5. Docker Deployment
+### 6. Docker Deployment
 ```bash
 docker build -t malicious-content-detector .
 docker run -p 8000:8000 malicious-content-detector
