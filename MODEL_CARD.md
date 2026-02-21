@@ -1,6 +1,7 @@
 # Model Card
 
 ## Intended Use
+- **Internal Security Tooling:** Prototype for AI testing and red-team workflows.
 - Detect prompts that attempt to manipulate systems (prompt injection, jailbreak intent) and other abusive content before it reaches downstream services.
 - Provide a calibrated probability, a label (BENIGN/MALICIOUS), and a simple risk/action decision that downstream systems can consume.
 - Serve as a trust & safety guardrail in API pipelines and batch processing jobs.

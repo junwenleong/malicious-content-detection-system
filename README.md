@@ -1,17 +1,26 @@
 # Malicious Content Detection System
 
-**A ML system for detecting abusive content for deployment over text-based APIs, designed for trust & safety operations.**
+**Internal security tooling prototype for AI testing / red-team workflows.**
 
-> This project demonstrates end-to-end ML engineering for security applications: from dataset analysis and model training, to calibrated inference, API deployment, and operational monitoring.
+> This system demonstrates an API-first design for detecting abusive content, deployed via Docker in isolated environments to support compliance and data handling policies.
 
 ---
 
-## Executive Overview
-- Built as a production service, not a demo. It ships with secure defaults, clear failure behaviors, and observability you can wire into your operations out of the box.
-- Designed to slot into existing enterprise stacks: reverse proxy in front, FastAPI behind, structured logs to your SIEM, metrics to Prometheus, and simple API-key auth with rotation.
-- Moves beyond “I trained a classifier” by covering the end‑to‑end system: calibrated outputs, risk policy, rate limiting, circuit breaking, input normalization, and audit trails.
-- Mirrors how such systems are deployed internally. Sensitive data has been replaced with a public dataset for demonstration, while the architecture and controls remain representative.
-- Business value: catches abusive requests early, reduces analyst load, and provides explainable risk decisions (label, probability, threshold, action) for downstream workflows.
+## Impetus
+
+This system was designed as an internal security tooling prototype for AI testing / red-team workflows. The primary interface is the **FastAPI service**, deployed via Docker in an isolated environment.
+
+The **React frontend** is a lightweight dashboard for manual testing and batch upload, but automated testing teams primarily integrate with the API directly. The system is Dockerized to support deployment inside restricted enterprise environments where sending prompts to external cloud services may violate compliance or data handling policies.
+
+The frontend exists for:
+- Manual validation
+- QA spot-checking
+- Batch CSV upload
+- Non-technical stakeholders reviewing outputs
+
+But the real system value is **API-first design**.
+
+> **Note:** The public dataset replaces internal data sources, which cannot be shared. The system architecture mirrors internal tooling patterns.
 
 ## How It Integrates
 - Drop behind an NGINX or API gateway and route `/v1/predict` and `/v1/batch` to the backend.

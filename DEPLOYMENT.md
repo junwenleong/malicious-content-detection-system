@@ -1,5 +1,7 @@
 # Deployment & Operations Audit
 
+> **Deployment Context:** This system is designed for isolated, on-premise, or VPC deployment where data cannot leave the boundary. It does not rely on external cloud APIs for inference.
+
 This document outlines the DevOps audit findings and provides a guide for production-grade deployment.
 
 ## 🛡️ DevOps Audit Report
