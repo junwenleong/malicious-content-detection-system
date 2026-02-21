@@ -33,7 +33,6 @@ def validate_env():
             
         # Print summary (masking secrets)
         print("\n📋 Current Configuration:")
-        print(f"   - Environment: {'Production' if not settings.fastui_enabled else 'Development'}")
         print(f"   - Model Version: {settings.model_version}")
         
         # Security validation
@@ -52,7 +51,7 @@ def validate_env():
             security_warnings.append("⚠️  HMAC Secret: Weak (less than 32 characters)")
             
         # Check for insecure defaults
-        if settings.fastui_enabled and "*" in settings.allowed_origins:
+        if "*" in settings.allowed_origins:
             security_warnings.append("⚠️  CORS: Overly permissive ('*') in development")
             
         print(f"   - Rate Limit: {settings.rate_limit_max}/{settings.rate_limit_window}s")

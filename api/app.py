@@ -7,9 +7,7 @@ from typing import Any, AsyncGenerator, Dict, List, cast
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastui import FastUI
 
-from src.api.fastui import ui_landing, ui_root
 from src.api.middleware import AuditMiddleware, SecurityHeadersMiddleware, PrometheusMiddleware
 from src.config import settings
 from src.inference.predictor import Predictor
@@ -161,15 +159,3 @@ def root() -> Dict[str, Any]:
     }
 
 
-@app.get("/fastui/api", response_model=FastUI, response_model_exclude_none=True)
-def fastui_api() -> List[Any]:
-    if not settings.fastui_enabled:
-        raise HTTPException(status_code=404, detail="FastUI disabled")
-    return ui_root()
-
-
-@app.get("/fastui")
-def fastui_html() -> Any:
-    if not settings.fastui_enabled:
-        raise HTTPException(status_code=404, detail="FastUI disabled")
-    return ui_landing()
