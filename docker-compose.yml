@@ -1,0 +1,19 @@
+services:
+  backend:
+    build:
+      context: .
+    ports:
+      - "8000:8000"
+    environment:
+      ALLOWED_ORIGINS: '["http://localhost:5173", "http://127.0.0.1:5173"]'
+      FASTUI_ENABLED: "true"
+      API_KEY: ""
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:8000
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend

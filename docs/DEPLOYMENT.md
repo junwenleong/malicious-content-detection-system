@@ -71,12 +71,15 @@ uvicorn api.app:app --reload --port 8000
 curl http://localhost:8000/health
 
 # Expected:
-# {"status": "healthy", "model_loaded": true, "timestamp": "2025-01-..."}
+# {"status": "healthy", "model_loaded": true, "service_degraded": false, "timestamp": "..."}
 
 # Test prediction
-curl -X POST "http://localhost:8000/predict" \
+curl -X POST "http://localhost:8000/v1/predict" \
   -H "Content-Type: application/json" \
   -d '{"texts": ["Test message"]}'
+
+# Metrics (Prometheus)
+curl http://localhost:8000/metrics/prometheus
 ```
 
 ---
@@ -376,7 +379,7 @@ from fastapi.security import APIKeyHeader
 
 api_key_header = APIKeyHeader(name="X-API-Key")
 
-@app.post("/predict")
+@app.post("/v1/predict")
 async def predict(request: PredictRequest, api_key: str = Depends(api_key_header)):
     if api_key not in VALID_API_KEYS:
         raise HTTPException(status_code=403, detail="Invalid API key")
