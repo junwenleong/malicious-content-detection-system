@@ -10,13 +10,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastui import FastUI
 
 from src.api.fastui import ui_landing, ui_root
+from src.api.middleware import AuditMiddleware, SecurityHeadersMiddleware, PrometheusMiddleware
 from src.config import settings
 from src.inference.predictor import Predictor
+from src.utils.circuit_breaker import CircuitBreaker
 from src.utils.metrics import Metrics
 from src.utils.rate_limiter import RateLimiter
 
 # Import routers
-from src.api.routes import health, predict, batch
+from src.api.routes import health, predict, batch, metrics
 
 logging.basicConfig(
     level=logging.INFO,
@@ -35,7 +37,20 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.state.rate_limiter = RateLimiter(
         settings.rate_limit_max, settings.rate_limit_window
     )
+    # Strict rate limiter for authentication failures (5 attempts per minute)
+    app.state.auth_rate_limiter = RateLimiter(5, 60)
+    app.state.breaker = (
+        CircuitBreaker(
+            settings.breaker_failure_threshold,
+            settings.breaker_cooldown_seconds,
+        )
+        if settings.breaker_enabled
+        else None
+    )
+    logger.info("Application startup complete")
     yield
+    logger.info("Application shutdown initiated")
+    # Clean up resources if needed (e.g. close DB connections)
 
 
 app = FastAPI(
@@ -57,6 +72,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.add_middleware(SecurityHeadersMiddleware)
+if settings.audit_log_enabled:
+    app.add_middleware(AuditMiddleware)
+
+app.add_middleware(PrometheusMiddleware)
+
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next: Any) -> Response:
@@ -69,7 +90,7 @@ async def log_requests(request: Request, call_next: Any) -> Response:
     start_time = time.time()
     try:
         response = await call_next(request)
-    except Exception:
+    except Exception as e:
         process_time = time.time() - start_time
         logger.error(
             json.dumps(
@@ -78,11 +99,28 @@ async def log_requests(request: Request, call_next: Any) -> Response:
                     "correlation_id": correlation_id,
                     "method": request.method,
                     "path": request.url.path,
+                    "error": str(e)[:500],
                     "duration_ms": round(process_time * 1000, 2),
                 }
             )
         )
-        raise
+        # RFC 7807 Problem Details for 500s
+        error_response = Response(
+            content=json.dumps(
+                {
+                    "type": "about:blank",
+                    "title": "Internal Server Error",
+                    "status": 500,
+                    "detail": "An unexpected error occurred while processing the request.",
+                    "instance": request.url.path,
+                    "correlation_id": correlation_id,
+                }
+            ),
+            status_code=500,
+            media_type="application/problem+json",
+        )
+        error_response.headers["x-correlation-id"] = correlation_id
+        return error_response
     process_time = time.time() - start_time
     response.headers["x-correlation-id"] = correlation_id
     logger.info(
@@ -104,6 +142,7 @@ async def log_requests(request: Request, call_next: Any) -> Response:
 app.include_router(health.router)
 app.include_router(predict.router)
 app.include_router(batch.router)
+app.include_router(metrics.router)
 
 
 @app.get("/")

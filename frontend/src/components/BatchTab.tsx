@@ -43,7 +43,12 @@ export function BatchTab({ apiUrl, apiKey }: BatchTabProps) {
       })
       if (!response.ok) {
         const text = await response.text()
-        throw new Error(text || 'Request failed')
+        try {
+          const errorData = JSON.parse(text)
+          throw new Error(errorData.detail || errorData.message || 'Request failed')
+        } catch {
+          throw new Error(text || 'Request failed')
+        }
       }
       const text = await response.text()
       const lines = text.split(/\r?\n/).filter(Boolean)
@@ -86,7 +91,7 @@ export function BatchTab({ apiUrl, apiKey }: BatchTabProps) {
         >
           Run Batch
         </Button>
-        {batchLoading && <CircularProgress size={24} />}
+        {batchLoading && <CircularProgress size={24} aria-label="Processing batch" />}
       </Box>
       {batchError && <Alert severity="error">{batchError}</Alert>}
       {batchPreview.length > 0 && (

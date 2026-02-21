@@ -25,7 +25,12 @@ export function AnalyzeTab({ apiUrl, headers }: AnalyzeTabProps) {
       })
       if (!response.ok) {
         const text = await response.text()
-        throw new Error(text || 'Request failed')
+        try {
+          const errorData = JSON.parse(text)
+          throw new Error(errorData.detail || errorData.message || 'Request failed')
+        } catch {
+          throw new Error(text || 'Request failed')
+        }
       }
       const data = (await response.json()) as PredictResponse
       setPredictData(data)
@@ -39,6 +44,9 @@ export function AnalyzeTab({ apiUrl, headers }: AnalyzeTabProps) {
 
   return (
     <Box display="grid" gap={2}>
+      <Alert severity="info">
+        <strong>Model Note:</strong> This demo dataset is trained to detect <em>jailbreak attempts</em> (e.g., "Ignore previous instructions"), not direct harm. Simple harmful queries may be classified as BENIGN.
+      </Alert>
       <TextField
         label="Text to analyze"
         multiline
@@ -55,7 +63,7 @@ export function AnalyzeTab({ apiUrl, headers }: AnalyzeTabProps) {
         >
           Analyze
         </Button>
-        {predictLoading && <CircularProgress size={24} />}
+        {predictLoading && <CircularProgress size={24} aria-label="Analyzing text" />}
       </Box>
       {predictError && <Alert severity="error">{predictError}</Alert>}
       {predictData && (
@@ -65,7 +73,7 @@ export function AnalyzeTab({ apiUrl, headers }: AnalyzeTabProps) {
           </Typography>
           {predictData.metadata?.model_version && (
             <Typography variant="body2" color="text.secondary">
-              Model: {predictData.metadata.model_version}
+              Engine Version: {predictData.metadata.model_version} | Latency: {predictData.metadata.total_latency_ms.toFixed(2)}ms
             </Typography>
           )}
           <Box display="grid" gap={1}>
@@ -73,7 +81,7 @@ export function AnalyzeTab({ apiUrl, headers }: AnalyzeTabProps) {
               <Box key={`${prediction.text}-${index}`}>
                 <Typography fontWeight={600}>{prediction.label}</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Probability: {prediction.probability_malicious.toFixed(4)} | Threshold:{' '}
+                  Confidence Score: {prediction.probability_malicious.toFixed(4)} | Threshold:{' '}
                   {prediction.threshold}
                 </Typography>
                 <Box display="flex" gap={1}>
