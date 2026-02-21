@@ -1,0 +1,44 @@
+services:
+  backend:
+    image: malicious-content-detection:latest
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      # Production overrides
+      ALLOWED_ORIGINS: '["https://internal-tool.corp.com"]'
+      FASTUI_ENABLED: "false" # Disable debug UI in prod
+      WORKERS: "4" # Fixed worker count or use auto
+      # Secrets must be provided by the environment/orchestrator
+      # API_KEY: ... 
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+
+  frontend:
+    image: malicious-content-detection-frontend:latest
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

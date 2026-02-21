@@ -20,6 +20,12 @@
 - Rotate API keys without downtime via `API_KEYS` (add new key, update clients, remove old key).
 - Use the risk policy outputs to drive business actions: ALLOW, flag for REVIEW, or BLOCK.
 
+## Deployment & Operations
+For production deployment, see [DEPLOYMENT.md](DEPLOYMENT.md).
+- **Docker**: Multi-stage builds, non-root user.
+- **Observability**: Prometheus metrics, JSON logs.
+- **Security**: Hardened config available in `docker-compose.prod.yml`.
+
 ## Quick Start (Windows)
 
 ### Prerequisites
