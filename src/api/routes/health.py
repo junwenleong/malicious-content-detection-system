@@ -1,64 +1,46 @@
 import time
-from typing import Any, Dict, Optional, cast
+from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Request
-from fastapi.responses import Response
+from fastapi import APIRouter, Request, Response, status
 from src.config import settings
 from src.inference.predictor import Predictor
-from src.utils.metrics import Metrics
+from src.utils.circuit_breaker import CircuitBreaker
 
 router = APIRouter()
 
 
 @router.get("/health")
-def health(request: Request) -> Dict[str, Any]:
+def health(request: Request, response: Response) -> Dict[str, Any]:
     predictor: Optional[Predictor] = getattr(request.app.state, "predictor", None)
-    return {
-        "status": "healthy",
+    breaker: Optional[CircuitBreaker] = getattr(request.app.state, "breaker", None)
+
+    is_healthy = predictor is not None
+    
+    health_status = {
+        "status": "healthy" if is_healthy else "unhealthy",
         "model_loaded": predictor is not None,
-        "service_degraded": predictor is None,
+        "service_degraded": False,
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
     }
 
+    if not is_healthy:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        health_status["status"] = "unhealthy"
 
-@router.get("/metrics")
-def get_metrics(request: Request) -> Dict[str, Any]:
-    metrics = cast(Metrics, request.app.state.metrics)
-    return metrics.get_stats()
+    if breaker:
+        health_status["circuit_breaker"] = {
+            "status": breaker.state,
+            "failures": breaker.failure_count,
+            "threshold": breaker.failure_threshold,
+        }
+        if breaker.state != "closed":
+            health_status["status"] = "degraded"
+            health_status["service_degraded"] = True
+            # We don't necessarily fail health check for breaker open, 
+            # as it might be temporary or partial degradation.
+            # But if model is missing, it's definitely 503.
 
-
-@router.get("/metrics/prometheus")
-def get_metrics_prometheus(request: Request) -> Response:
-    metrics = cast(Metrics, request.app.state.metrics)
-    stats = metrics.get_stats()
-    lines = []
-    lines.append("# HELP abuse_uptime_seconds Service uptime in seconds")
-    lines.append("# TYPE abuse_uptime_seconds gauge")
-    lines.append(f"abuse_uptime_seconds {stats['uptime_seconds']}")
-    lines.append("# HELP abuse_total_requests Total request count")
-    lines.append("# TYPE abuse_total_requests counter")
-    lines.append(f"abuse_total_requests {stats['total_requests']}")
-    lines.append("# HELP abuse_total_predictions Total predictions count")
-    lines.append("# TYPE abuse_total_predictions counter")
-    lines.append(f"abuse_total_predictions {stats['total_predictions']}")
-    labels = cast(Dict[str, int], stats.get("predictions_by_class", {}))
-    for k, v in labels.items():
-        lines.append(
-            "# HELP abuse_predictions_by_class_total Total predictions by class"
-        )
-        lines.append("# TYPE abuse_predictions_by_class_total counter")
-        lines.append(f'abuse_predictions_by_class_total{{label="{k}"}} {v}')
-    lines.append("# HELP abuse_average_latency_ms Average latency in ms")
-    lines.append("# TYPE abuse_average_latency_ms gauge")
-    lines.append(f"abuse_average_latency_ms {stats['average_latency_ms']}")
-    lines.append("# HELP abuse_errors_total Total errors")
-    lines.append("# TYPE abuse_errors_total counter")
-    lines.append(f"abuse_errors_total {stats['errors']}")
-    lines.append("# HELP abuse_requests_per_second Requests per second")
-    lines.append("# TYPE abuse_requests_per_second gauge")
-    lines.append(f"abuse_requests_per_second {stats['requests_per_second']}")
-    payload = "\n".join(lines) + "\n"
-    return Response(content=payload, media_type="text/plain; charset=utf-8")
+    return health_status
 
 
 @router.get("/model-info")

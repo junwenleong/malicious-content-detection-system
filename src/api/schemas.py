@@ -2,9 +2,11 @@ from typing import List, Optional, Any, Dict
 
 from pydantic import BaseModel, Field, field_validator
 
+from src.config import settings
+
 
 class PredictRequest(BaseModel):
-    texts: List[str] = Field(..., min_length=1, max_length=1000)
+    texts: List[str] = Field(..., min_length=1, max_length=settings.max_batch_items)
 
     @field_validator("texts")
     @classmethod
@@ -12,6 +14,8 @@ class PredictRequest(BaseModel):
         for text in value:
             if not isinstance(text, str) or not text.strip():
                 raise ValueError("Empty text not allowed")
+            if len(text) > settings.max_text_length:
+                raise ValueError(f"Text exceeds maximum length of {settings.max_text_length} characters")
         return value
 
 

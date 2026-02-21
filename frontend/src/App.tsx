@@ -30,10 +30,18 @@ function App() {
   )
 
   const [tab, setTab] = useState(0)
-  const [apiUrl, setApiUrl] = useState(defaultApiUrl)
-  const [apiKey, setApiKey] = useState('')
+  const [apiUrl, setApiUrl] = useState(() => localStorage.getItem('api_url') ?? defaultApiUrl)
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('api_key') ?? '')
   const [healthStatus, setHealthStatus] = useState<'unknown' | 'ok' | 'error'>('unknown')
   const [healthMessage, setHealthMessage] = useState('')
+
+  useEffect(() => {
+    localStorage.setItem('api_url', apiUrl)
+  }, [apiUrl])
+
+  useEffect(() => {
+    localStorage.setItem('api_key', apiKey)
+  }, [apiKey])
 
   useEffect(() => {
     let isMounted = true

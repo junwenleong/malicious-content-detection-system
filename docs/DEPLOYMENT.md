@@ -36,6 +36,10 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Configure Environment
+cp .env.development.example .env
+python validate_env.py
 ```
 
 ### 2. Verify Model Artifacts
@@ -371,20 +375,14 @@ rate_limiter = RateLimiter(max_requests=100, window_seconds=60)
 - Max batch size: 100 texts per request
 - File size limit: 10MB (CSV uploads)
 
-### 3. Authentication (TODO)
+### 3. Authentication (Implemented)
 
-Add API key authentication:
-```python
-from fastapi.security import APIKeyHeader
-
-api_key_header = APIKeyHeader(name="X-API-Key")
-
-@app.post("/v1/predict")
-async def predict(request: PredictRequest, api_key: str = Depends(api_key_header)):
-    if api_key not in VALID_API_KEYS:
-        raise HTTPException(status_code=403, detail="Invalid API key")
-    # ... existing logic
-```
+API key authentication is now enforced with rate limiting:
+- **Strict API Key Validation**: Requests must include `x-api-key` header matching one of the keys in `API_KEYS` (or `API_KEY`).
+- **Secret Rotation**: Use `API_KEYS='["key1","key2"]'` to support multiple keys during rotation.
+- **Complexity Requirements**: HMAC secrets must be at least 32 characters long.
+- **Fail-Secure**: System errors if secrets are missing or too weak in production.
+- **Brute-Force Protection**: 5 failed attempts per minute block the IP for 60 seconds.
 
 ### 4. HTTPS/TLS
 

@@ -5,9 +5,14 @@ services:
     ports:
       - "8000:8000"
     environment:
-      ALLOWED_ORIGINS: '["http://localhost:5173", "http://127.0.0.1:5173"]'
-      FASTUI_ENABLED: "true"
-      API_KEY: ""
+      ALLOWED_ORIGINS: '${ALLOWED_ORIGINS:-["http://localhost:5173", "http://127.0.0.1:5173"]}'
+      FASTUI_ENABLED: "${FASTUI_ENABLED:-true}"
+      API_KEYS: "${API_KEYS:-[]}"
+      API_KEY: "${API_KEY:-dev-secret-key-123}"
+      DECISION_THRESHOLD: "${DECISION_THRESHOLD:-0.45}"
+      RATE_LIMIT_MAX: "${RATE_LIMIT_MAX:-100}"
+      BREAKER_ENABLED: "${BREAKER_ENABLED:-true}"
+      WORKERS: "${WORKERS:-4}"
   frontend:
     build:
       context: ./frontend
