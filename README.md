@@ -313,7 +313,7 @@ curl http://localhost:8000/model-info
 ```
 
 ### 4. FastUI & React Frontend
-- **FastUI (Backend-driven):** http://localhost:8000/fastui
+
 - **React Console:** http://localhost:5173
 
 ### 5. Observability (Quick)

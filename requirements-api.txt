@@ -1,5 +1,4 @@
 fastapi==0.128.0
-fastui==0.9.0
 joblib==1.5.3
 pydantic==2.12.5
 python-multipart==0.0.21

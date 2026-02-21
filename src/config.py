@@ -46,7 +46,6 @@ class Settings(BaseSettings):
     hmac_enabled: bool = Field(default=False, description="Enforce HMAC signature on critical endpoints")
     
     # Circuit Breaker
-    fastui_enabled: bool = Field(default=True)
     breaker_enabled: bool = Field(default=True)
     breaker_failure_threshold: int = Field(default=5, ge=1)
     breaker_cooldown_seconds: int = Field(default=30, ge=1)
@@ -57,7 +56,7 @@ class Settings(BaseSettings):
         if self.api_key and self.api_key not in self.api_keys:
             self.api_keys.append(self.api_key)
         
-        # Enforce minimum complexity for secrets in production (implied by fastui_enabled=False or explicit check)
+        # Enforce minimum complexity for secrets in production (implied by explicit check)
         # We'll just warn/check generally for now to avoid breaking existing dev setups hard, 
         # but for HMAC it's critical.
         if self.hmac_enabled:
