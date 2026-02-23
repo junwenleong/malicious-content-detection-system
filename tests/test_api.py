@@ -145,5 +145,5 @@ def test_predict_rejects_whitespace_only_text() -> None:
             json={"texts": ["   "]},
             headers={"x-api-key": src.config.settings.api_keys[0]},
         )
-        assert response.status_code == 400
-        assert "Empty text" in response.json()["detail"]
+        assert response.status_code == 422  # Pydantic validation error
+        assert "Empty text" in response.json()["detail"][0]["msg"]
