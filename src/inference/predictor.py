@@ -26,7 +26,7 @@ class Predictor(BasePredictor):
         self.config: Dict[str, Any] = joblib.load(config_path)
         pos_class = self.config["positive_class"]
         self.pos_index = list(self.model.classes_).index(pos_class)
-        
+
         # Simple LRU cache: text -> probability
         # Limit size to prevent memory leaks
         self._cache: OrderedDict[str, float] = OrderedDict()
@@ -66,7 +66,7 @@ class Predictor(BasePredictor):
         with open(file_path, "rb") as f:
             for byte_block in iter(lambda: f.read(4096), b""):
                 sha256_hash.update(byte_block)
-        
+
         calculated_hash = sha256_hash.hexdigest()
         if calculated_hash != expected_hash:
             raise ValueError(
@@ -75,12 +75,12 @@ class Predictor(BasePredictor):
             )
 
     # Compiled regex for stripping control characters
-    _CONTROL_CHAR_RE = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]')
+    _CONTROL_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]")
 
     def _normalize_text(self, text: str) -> str:
         """Normalize text to NFKC form and strip control characters."""
         normalized = unicodedata.normalize("NFKC", text)
-        normalized = self._CONTROL_CHAR_RE.sub('', normalized)
+        normalized = self._CONTROL_CHAR_RE.sub("", normalized)
         return normalized
 
     def predict(
@@ -93,7 +93,7 @@ class Predictor(BasePredictor):
 
         # Sanitize input
         normalized_texts = [self._normalize_text(t) for t in texts]
-        
+
         # Check cache
         probs = [0.0] * len(normalized_texts)
         miss_indices = []

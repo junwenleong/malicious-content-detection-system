@@ -30,7 +30,9 @@ def test_global_exception_handler() -> None:
     data = response.json()
 
     # RFC 7807 checks
-    assert data["detail"] == "An unexpected error occurred while processing the request."
+    assert (
+        data["detail"] == "An unexpected error occurred while processing the request."
+    )
     assert data["title"] == "Internal Server Error"
     assert data["type"] == "about:blank"
     assert "correlation_id" in data

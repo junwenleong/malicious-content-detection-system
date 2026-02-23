@@ -27,11 +27,20 @@ async def batch_predict(
 ) -> StreamingResponse:
     if not file.filename or not file.filename.lower().endswith(".csv"):
         raise HTTPException(status_code=400, detail="Only .csv files accepted")
-    
+
     # MIME Type Validation
-    allowed_mime_types = {"text/csv", "application/vnd.ms-excel", "application/csv", "text/plain", None}
+    allowed_mime_types = {
+        "text/csv",
+        "application/vnd.ms-excel",
+        "application/csv",
+        "text/plain",
+        None,
+    }
     if file.content_type not in allowed_mime_types:
-        raise HTTPException(status_code=400, detail=f"Invalid content type: {file.content_type}. Only CSV allowed.")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid content type: {file.content_type}. Only CSV allowed.",
+        )
 
     content_length = req.headers.get("content-length")
     if content_length and int(content_length) > settings.max_csv_bytes:
@@ -106,12 +115,14 @@ async def batch_predict(
                         breaker.record_failure()
                     metrics.record_error()
                     logger.error(
-                        json.dumps({
-                            "event": "batch_inference_error",
-                            "correlation_id": correlation_id,
-                            "error": str(exc)[:500],
-                            "rows_processed": total_rows,
-                        })
+                        json.dumps(
+                            {
+                                "event": "batch_inference_error",
+                                "correlation_id": correlation_id,
+                                "error": str(exc)[:500],
+                                "rows_processed": total_rows,
+                            }
+                        )
                     )
                     yield f"ERROR,INFERENCE_FAILED,0,0,ERROR,ERROR,{settings.model_version},0\n"
                     return
@@ -140,12 +151,14 @@ async def batch_predict(
                     breaker.record_failure()
                 metrics.record_error()
                 logger.error(
-                    json.dumps({
-                        "event": "batch_inference_error",
-                        "correlation_id": correlation_id,
-                        "error": str(exc)[:500],
-                        "rows_processed": total_rows,
-                    })
+                    json.dumps(
+                        {
+                            "event": "batch_inference_error",
+                            "correlation_id": correlation_id,
+                            "error": str(exc)[:500],
+                            "rows_processed": total_rows,
+                        }
+                    )
                 )
                 yield f"ERROR,INFERENCE_FAILED,0,0,ERROR,ERROR,{settings.model_version},0\n"
                 return

@@ -49,7 +49,9 @@ class Metrics:
         with self._lock:
             uptime = (datetime.now() - self.start_time).total_seconds()
             avg_latency = (
-                self.total_latency / self.total_requests if self.total_requests > 0 else 0
+                self.total_latency / self.total_requests
+                if self.total_requests > 0
+                else 0
             )
             return {
                 "uptime_seconds": uptime,
@@ -58,5 +60,7 @@ class Metrics:
                 "predictions_by_class": dict(self.predictions_by_class),
                 "average_latency_ms": avg_latency * 1000,
                 "errors": self.errors,
-                "requests_per_second": self.total_requests / uptime if uptime > 0 else 0,
+                "requests_per_second": (
+                    self.total_requests / uptime if uptime > 0 else 0
+                ),
             }

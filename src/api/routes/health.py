@@ -15,7 +15,7 @@ def health(request: Request, response: Response) -> Dict[str, Any]:
     breaker: CircuitBreaker | None = getattr(request.app.state, "breaker", None)
 
     is_healthy = predictor is not None
-    
+
     health_status: Dict[str, Any] = {
         "status": "healthy" if is_healthy else "unhealthy",
         "model_loaded": predictor is not None,
