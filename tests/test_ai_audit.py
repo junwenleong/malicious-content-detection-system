@@ -3,14 +3,10 @@ import pytest
 import joblib
 import os
 import hashlib
-import sys
 import threading
 import numpy as np
 from collections import OrderedDict
 from unittest.mock import MagicMock, patch
-
-# Add src to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.inference.predictor import Predictor
 

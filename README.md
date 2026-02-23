@@ -25,7 +25,7 @@ But the real system value is **API-first design**.
 ## How It Integrates
 - Drop behind an NGINX or API gateway and route `/v1/predict` and `/v1/batch` to the backend.
 - Use the structured JSON audit logs (with correlation IDs) to feed your SIEM or data lake.
-- Scrape `/metrics/prometheus` for basic service metrics; extend as needed for SLOs.
+- Scrape `/metrics` for basic service metrics; extend as needed for SLOs.
 - Rotate API keys without downtime via `API_KEYS` (add new key, update clients, remove old key).
 - Use the risk policy outputs to drive business actions: ALLOW, flag for REVIEW, or BLOCK.
 
@@ -77,6 +77,48 @@ To run the integration tests against a running backend:
 **PowerShell**
 ```powershell
 .\test_api.ps1
+```
+
+## Quick Start (macOS / Linux)
+
+### Prerequisites
+- Docker Desktop or Docker Engine (running)
+- Python 3.11+
+
+### Configuration
+1. Copy the example environment file:
+   ```bash
+   # Backend
+   cp .env.development.example .env
+   
+   # Frontend
+   cp frontend/.env.development.example frontend/.env
+   ```
+
+   > **Note:** The default API Key is `dev-secret-key-123`. You must enter this in the Frontend Connection Panel to authenticate.
+
+2. Validate your configuration:
+   ```bash
+   python3 validate_env.py
+   ```
+
+### Running the System
+```bash
+./run.sh
+```
+
+Or with Docker Compose directly:
+```bash
+docker compose up --build
+```
+
+- **Backend:** http://localhost:8000
+- **Frontend:** http://localhost:5173
+
+### Testing the API
+```bash
+pip install -r requirements-dev.txt
+pytest tests/ -v
 ```
 
 ---
@@ -212,7 +254,7 @@ This system uses ML to detect malicious content **before** it reaches downstream
          ▼
 ┌─────────────────────────────┐
 │  Threshold Decision         │
-│  (0.45 - optimized F1)      │
+│  (0.54 - optimized F1)      │
 └────────┬────────────────────┘
          │
          ▼
@@ -223,7 +265,7 @@ This system uses ML to detect malicious content **before** it reaches downstream
 1. **TF-IDF over embeddings**: Faster inference, interpretable features, sufficient for this task
 2. **Logistic regression**: Baseline with excellent speed/accuracy trade-off
 3. **Calibration**: Ensures probabilities are reliable for threshold-based decisions for monitoring centre
-4. **0.45 threshold**: Selected via validation set PR-curve analysis (F1 optimization)
+4. **0.54 threshold**: Selected via validation set PR-curve analysis (F1 optimization)
 
 ## Resilience & Policy
 - **Circuit Breaker:** Protects inference service from cascading failures (configurable threshold/cooldown).
@@ -297,7 +339,7 @@ curl -X POST "http://localhost:8000/v1/predict" \
       "text": "Hello world",
       "label": "BENIGN",
       "probability_malicious": 0.023,
-      "threshold": 0.45,
+      "threshold": 0.54,
       "risk_level": "LOW",
       "recommended_action": "ALLOW"
     },
@@ -305,7 +347,7 @@ curl -X POST "http://localhost:8000/v1/predict" \
       "text": "I want to kill someone",
       "label": "MALICIOUS",
       "probability_malicious": 0.98,
-      "threshold": 0.45,
+      "threshold": 0.54,
       "risk_level": "HIGH",
       "recommended_action": "BLOCK"
     }
@@ -326,7 +368,7 @@ curl http://localhost:8000/model-info
 - **React Console:** http://localhost:5173
 
 ### 5. Observability (Quick)
-- **Metrics (Prometheus):** curl http://localhost:8000/metrics/prometheus
+- **Metrics (Prometheus):** curl http://localhost:8000/metrics
 - **Health:** curl http://localhost:8000/health (includes service_degraded)
 - **Logging:** JSON logs with correlation IDs
 

@@ -48,3 +48,24 @@ def test_circuit_breaker_reset_behavior():
     # Second failure opens it again
     cb.record_failure()
     assert cb.allow_request() is False
+
+
+def test_circuit_breaker_half_open_state():
+    """Test that breaker enters half-open after cooldown expires."""
+    cb = CircuitBreaker(failure_threshold=2, cooldown_seconds=0.1)
+    
+    # Trip the breaker
+    cb.record_failure()
+    cb.record_failure()
+    assert cb.state == "open"
+    
+    # Wait for cooldown
+    time.sleep(0.15)
+    
+    # Should be half-open now
+    assert cb.state == "half-open"
+    assert cb.allow_request() is True
+    
+    # Success should close it
+    cb.record_success()
+    assert cb.state == "closed"

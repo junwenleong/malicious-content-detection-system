@@ -39,10 +39,10 @@ class Settings(BaseSettings):
     max_csv_bytes: int = Field(default=10 * 1024 * 1024, ge=1)
     
     # Auth & Security
-    api_key: str = Field(default="", description="Legacy single API Key support")
-    api_keys: List[str] = Field(default=[], description="List of valid API Keys for rotation")
+    api_key: str = Field(default="", description="Legacy single API Key support", repr=False)
+    api_keys: List[str] = Field(default=[], description="List of valid API Keys for rotation", repr=False)
     audit_log_enabled: bool = Field(default=True)
-    hmac_secret: str = Field(default="", description="Secret for HMAC signature verification")
+    hmac_secret: str = Field(default="", description="Secret for HMAC signature verification", repr=False)
     hmac_enabled: bool = Field(default=False, description="Enforce HMAC signature on critical endpoints")
     
     # Circuit Breaker

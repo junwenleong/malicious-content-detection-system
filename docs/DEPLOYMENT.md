@@ -83,7 +83,7 @@ curl -X POST "http://localhost:8000/v1/predict" \
   -d '{"texts": ["Test message"]}'
 
 # Metrics (Prometheus)
-curl http://localhost:8000/metrics/prometheus
+curl http://localhost:8000/metrics
 ```
 
 ---
@@ -325,16 +325,19 @@ Returns:
 - `errors`
 - `requests_per_second`
 
-### Prometheus Integration (TODO)
+### Prometheus Integration
 
-Export metrics in Prometheus format:
-```python
-# Add prometheus_client dependency
-from prometheus_client import Counter, Histogram, generate_latest
-
-# Instrument endpoints
-# Expose /metrics endpoint
+Prometheus metrics are exposed at `/metrics`:
+```bash
+curl http://localhost:8000/metrics
 ```
+
+Available metrics:
+- `http_requests_total` — Total HTTP requests by method, endpoint, status
+- `http_request_duration_seconds` — HTTP request latency histogram
+- `prediction_total` — Total predictions by label
+- `prediction_duration_seconds` — Prediction latency histogram
+- `prediction_errors_total` — Total prediction errors
 
 ### Logging
 
@@ -359,11 +362,9 @@ Aggregate with:
 
 ### 1. Rate Limiting
 
-Current implementation (in-memory):
-```python
-# api/app.py
-rate_limiter = RateLimiter(max_requests=100, window_seconds=60)
-```
+Configured via environment variables:
+- `RATE_LIMIT_MAX`: Maximum requests per window (default: 100)
+- `RATE_LIMIT_WINDOW`: Window duration in seconds (default: 60)
 
 **Production alternative:**
 - Redis-based distributed rate limiting
@@ -371,9 +372,9 @@ rate_limiter = RateLimiter(max_requests=100, window_seconds=60)
 
 ### 2. Input Validation
 
-- Max text length: 10,000 characters
-- Max batch size: 100 texts per request
-- File size limit: 10MB (CSV uploads)
+- Max text length: 10,000 characters (configurable via `MAX_TEXT_LENGTH`)
+- Max batch size: 1,000 texts per request (configurable via `MAX_BATCH_ITEMS`)
+- File size limit: 10MB (CSV uploads, configurable via `MAX_CSV_BYTES`)
 
 ### 3. Authentication (Implemented)
 

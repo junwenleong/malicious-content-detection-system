@@ -7,12 +7,13 @@ from typing import AsyncGenerator
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
 
-from src.api.routes.predict import require_api_key
+from src.api.dependencies import require_api_key, resolve_threshold
 from src.config import settings
 from src.inference.predictor import Predictor
 from src.utils.circuit_breaker import CircuitBreaker
 from src.utils.metrics import Metrics
 from src.utils.policy import policy_decision
+from src.utils.rate_limiter import RateLimiter
 
 router = APIRouter(prefix="/v1")
 logger = logging.getLogger(__name__)
@@ -28,8 +29,8 @@ async def batch_predict(
         raise HTTPException(status_code=400, detail="Only .csv files accepted")
     
     # MIME Type Validation
-    if file.content_type not in ["text/csv", "application/vnd.ms-excel", "application/csv", "text/plain"]:
-        # Note: Some browsers send text/plain for CSV. We allow it but rely on extension and parsing.
+    allowed_mime_types = {"text/csv", "application/vnd.ms-excel", "application/csv", "text/plain", None}
+    if file.content_type not in allowed_mime_types:
         raise HTTPException(status_code=400, detail=f"Invalid content type: {file.content_type}. Only CSV allowed.")
 
     content_length = req.headers.get("content-length")
@@ -46,11 +47,18 @@ async def batch_predict(
     if predictor is None:
         metrics.record_error()
         raise HTTPException(status_code=503, detail="Model unavailable")
-    threshold = (
-        float(settings.decision_threshold)
-        if settings.decision_threshold is not None
-        else float(predictor.config["optimal_threshold"])
-    )
+
+    # Rate limit batch requests
+    client_ip = req.client.host if req.client else "unknown"
+    rate_limiter: RateLimiter = req.app.state.rate_limiter
+    if not rate_limiter.is_allowed(client_ip):
+        raise HTTPException(
+            status_code=429,
+            detail="Rate limit exceeded",
+            headers={"Retry-After": str(settings.rate_limit_window)},
+        )
+
+    threshold = resolve_threshold(predictor)
 
     # Create a wrapper that handles decoding properly
     # UploadFile.file is a SpooledTemporaryFile which is binary
@@ -80,7 +88,7 @@ async def batch_predict(
         nonlocal total_rows
         yield "text,label,probability,threshold,risk_level,recommended_action,model_version,latency_ms\n"
 
-        batch_texts = []
+        batch_texts: list[str] = []
         chunk_size = settings.max_batch_items
 
         for row in csv_reader:
@@ -93,14 +101,23 @@ async def batch_predict(
                     labels, probs, latency = await predictor.apredict(
                         batch_texts, threshold
                     )
-                except Exception:
+                except Exception as exc:
                     if breaker:
                         breaker.record_failure()
                     metrics.record_error()
-                    raise HTTPException(status_code=503, detail="Inference error")
+                    logger.error(
+                        json.dumps({
+                            "event": "batch_inference_error",
+                            "correlation_id": correlation_id,
+                            "error": str(exc)[:500],
+                            "rows_processed": total_rows,
+                        })
+                    )
+                    yield f"ERROR,INFERENCE_FAILED,0,0,ERROR,ERROR,{settings.model_version},0\n"
+                    return
                 if breaker:
                     breaker.record_success()
-                per_item_latency = latency / len(labels)
+                per_item_latency = latency / max(len(labels), 1)
 
                 for text, label, prob in zip(batch_texts, labels, probs):
                     clean_text = text.replace(",", " ").replace("\n", " ")[:100]
@@ -118,14 +135,23 @@ async def batch_predict(
                 labels, probs, latency = await predictor.apredict(
                     batch_texts, threshold
                 )
-            except Exception:
+            except Exception as exc:
                 if breaker:
                     breaker.record_failure()
                 metrics.record_error()
-                raise HTTPException(status_code=503, detail="Inference error")
+                logger.error(
+                    json.dumps({
+                        "event": "batch_inference_error",
+                        "correlation_id": correlation_id,
+                        "error": str(exc)[:500],
+                        "rows_processed": total_rows,
+                    })
+                )
+                yield f"ERROR,INFERENCE_FAILED,0,0,ERROR,ERROR,{settings.model_version},0\n"
+                return
             if breaker:
                 breaker.record_success()
-            per_item_latency = latency / len(labels)
+            per_item_latency = latency / max(len(labels), 1)
             for text, label, prob in zip(batch_texts, labels, probs):
                 clean_text = text.replace(",", " ").replace("\n", " ")[:100]
                 risk_level, recommended_action = policy_decision(float(prob), threshold)

@@ -11,7 +11,7 @@ export function Header() {
           <Chip label="v1.0" size="small" color="primary" variant="outlined" />
         </Stack>
         <Typography variant="body1" color="text.secondary">
-          Enterprise-Grade Content Safety Platform • Powered by Calibrated ML
+          Content Safety Analysis Platform
         </Typography>
       </Container>
     </AppBar>

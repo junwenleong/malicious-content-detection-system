@@ -7,7 +7,6 @@ services:
     environment:
       # Production overrides
       ALLOWED_ORIGINS: '["https://internal-tool.corp.com"]'
-      FASTUI_ENABLED: "false" # Disable debug UI in prod
       WORKERS: "4" # Fixed worker count or use auto
       # Secrets must be provided by the environment/orchestrator
       # API_KEY: ... 
@@ -37,6 +36,11 @@ services:
       - "80:80"
     depends_on:
       - backend
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     logging:
       driver: "json-file"
       options:

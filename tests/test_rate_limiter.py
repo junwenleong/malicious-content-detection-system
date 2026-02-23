@@ -59,3 +59,12 @@ def test_is_blocked_vs_allowed():
     # Now blocked
     assert limiter.is_blocked(client_id) is True
     assert limiter.is_allowed(client_id) is False
+
+
+def test_rate_limiter_different_clients():
+    """Ensure rate limiting is per-client, not global."""
+    limiter = RateLimiter(max_requests=1, window_seconds=1)
+    
+    assert limiter.is_allowed("client_a") is True
+    assert limiter.is_allowed("client_a") is False  # blocked
+    assert limiter.is_allowed("client_b") is True   # different client, allowed

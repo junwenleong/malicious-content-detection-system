@@ -1,5 +1,5 @@
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from fastapi import APIRouter, Request, Response, status
 from src.config import settings
@@ -11,8 +11,8 @@ router = APIRouter()
 
 @router.get("/health")
 def health(request: Request, response: Response) -> Dict[str, Any]:
-    predictor: Optional[Predictor] = getattr(request.app.state, "predictor", None)
-    breaker: Optional[CircuitBreaker] = getattr(request.app.state, "breaker", None)
+    predictor: Predictor | None = getattr(request.app.state, "predictor", None)
+    breaker: CircuitBreaker | None = getattr(request.app.state, "breaker", None)
 
     is_healthy = predictor is not None
     
@@ -36,16 +36,15 @@ def health(request: Request, response: Response) -> Dict[str, Any]:
         if breaker.state != "closed":
             health_status["status"] = "degraded"
             health_status["service_degraded"] = True
-            # We don't necessarily fail health check for breaker open, 
-            # as it might be temporary or partial degradation.
-            # But if model is missing, it's definitely 503.
+
+    health_status["model_version"] = settings.model_version
 
     return health_status
 
 
 @router.get("/model-info")
 def model_info(request: Request) -> Dict[str, Any]:
-    predictor: Optional[Predictor] = getattr(request.app.state, "predictor", None)
+    predictor: Predictor | None = getattr(request.app.state, "predictor", None)
     config_threshold = None
     positive_class = None
     if predictor:
@@ -58,8 +57,6 @@ def model_info(request: Request) -> Dict[str, Any]:
     )
     return {
         "model_version": settings.model_version,
-        "model_path": settings.model_path,
-        "config_path": settings.config_path,
         "decision_threshold": decision_threshold,
         "config_threshold": config_threshold,
         "positive_class": positive_class,
