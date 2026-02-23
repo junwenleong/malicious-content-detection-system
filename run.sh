@@ -37,6 +37,7 @@ fi
 # Export ports for docker-compose
 export BACKEND_PORT
 export FRONTEND_PORT
+export VITE_API_URL="http://localhost:$BACKEND_PORT"
 
 # Update ALLOWED_ORIGINS to include the new frontend port
 export ALLOWED_ORIGINS="[\"http://localhost:$FRONTEND_PORT\", \"http://127.0.0.1:$FRONTEND_PORT\"]"
@@ -45,36 +46,20 @@ echo -e "\033[33mBuilding and starting containers...\033[0m"
 echo -e "\033[33mBackend will run on port: $BACKEND_PORT\033[0m"
 echo -e "\033[33mFrontend will run on port: $FRONTEND_PORT\033[0m"
 
-# Clean up any existing containers first
+# Clean up any existing containers
 echo -e "\033[33mCleaning up existing containers...\033[0m"
-docker compose down 2>/dev/null || true
+docker compose down -v --remove-orphans 2>/dev/null || true
 
-# Create a temporary docker-compose override
-cat > docker-compose.override.yml <<EOF
-services:
-  backend:
-    ports:
-      - "$BACKEND_PORT:8000"
-    environment:
-      ALLOWED_ORIGINS: '$ALLOWED_ORIGINS'
-  frontend:
-    build:
-      context: ./frontend
-      args:
-        VITE_API_URL: http://localhost:$BACKEND_PORT
-    ports:
-      - "$FRONTEND_PORT:80"
-EOF
+# Wait a moment for cleanup
+sleep 1
 
-# Run Docker Compose
-docker compose up --build -d
+echo -e "\n\033[32mStarting services...\033[0m"
+echo -e "\033[36mBackend API: http://localhost:$BACKEND_PORT\033[0m"
+echo -e "\033[36mFrontend UI: http://localhost:$FRONTEND_PORT\033[0m"
+echo -e "\n\033[33mPress Ctrl+C to stop all services\033[0m\n"
 
-if [ $? -eq 0 ]; then
-    echo -e "\n\033[32mSystem is running!\033[0m"
-    echo -e "\033[36mBackend API: http://localhost:$BACKEND_PORT\033[0m"
-    echo -e "\033[36mFrontend UI: http://localhost:$FRONTEND_PORT\033[0m"
-    echo -e "\n\033[33mTo stop: docker compose down\033[0m"
-else
-    echo -e "\033[31mFailed to start containers.\033[0m"
-    exit 1
-fi
+# Trap Ctrl+C to clean up
+trap 'echo -e "\n\033[33mStopping services...\033[0m"; docker compose down; exit 0' INT TERM
+
+# Run Docker Compose in foreground (no -d flag)
+docker compose up --build --force-recreate

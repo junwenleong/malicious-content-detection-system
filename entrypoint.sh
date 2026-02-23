@@ -16,5 +16,7 @@ echo "Starting Gunicorn with $WORKERS workers..."
 exec gunicorn -k uvicorn.workers.UvicornWorker \
     -w "$WORKERS" \
     --timeout 120 \
+    --access-logfile - \
+    --error-logfile - \
     -b 0.0.0.0:8000 \
     api.app:app

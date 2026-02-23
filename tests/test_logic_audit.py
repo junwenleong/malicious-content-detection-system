@@ -43,20 +43,19 @@ def test_circuit_breaker_recovery(mock_time):
     assert breaker.allow_request() is True
 
 def test_predictor_empty_input():
-    # Mock model and config
-    mock_model = MagicMock()
-    mock_config = {"positive_class": 1, "optimal_threshold": 0.5}
-    
     # Create predictor with mocked internals
     predictor = Predictor.__new__(Predictor)
-    predictor.model = mock_model
-    predictor.config = mock_config
+    predictor.model = MagicMock()
+    predictor.config = {"positive_class": 1, "optimal_threshold": 0.5}
     predictor.pos_index = 1
-    
+    predictor._cache = {}
+    predictor._cache_size = 10000
+    predictor._lock = __import__("threading").Lock()
+
     labels, probs, latency = predictor.predict([])
     assert labels == []
     assert probs == []
     assert latency == 0.0
-    
+
     # Verify model was NOT called
-    mock_model.predict_proba.assert_not_called()
+    predictor.model.predict_proba.assert_not_called()

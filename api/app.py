@@ -3,9 +3,9 @@ import logging
 import time
 import uuid
 from contextlib import asynccontextmanager
-from typing import Any, AsyncGenerator, Dict, List, cast
+from typing import Any, AsyncGenerator, Dict, cast
 
-from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.middleware import AuditMiddleware, SecurityHeadersMiddleware, PrometheusMiddleware
@@ -29,8 +29,13 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     try:
         app.state.predictor = Predictor(settings.model_path, settings.config_path)
-    except Exception:
-        app.state.predictor = None
+        logger.info("Model loaded successfully")
+    except FileNotFoundError:
+        logger.critical("Model files not found. Cannot start without model.")
+        raise
+    except Exception as e:
+        logger.critical(f"Failed to load model: {e}")
+        raise
     app.state.metrics = Metrics()
     app.state.rate_limiter = RateLimiter(
         settings.rate_limit_max, settings.rate_limit_window
@@ -66,8 +71,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "x-api-key", "X-Signature", "x-correlation-id", "x-request-id"],
 )
 
 app.add_middleware(SecurityHeadersMiddleware)
@@ -85,11 +90,11 @@ async def log_requests(request: Request, call_next: Any) -> Response:
         or str(uuid.uuid4())
     )
     request.state.correlation_id = correlation_id
-    start_time = time.time()
+    start_time = time.monotonic()
     try:
         response = await call_next(request)
     except Exception as e:
-        process_time = time.time() - start_time
+        process_time = time.monotonic() - start_time
         logger.error(
             json.dumps(
                 {
@@ -119,7 +124,7 @@ async def log_requests(request: Request, call_next: Any) -> Response:
         )
         error_response.headers["x-correlation-id"] = correlation_id
         return error_response
-    process_time = time.time() - start_time
+    process_time = time.monotonic() - start_time
     response.headers["x-correlation-id"] = correlation_id
     logger.info(
         json.dumps(

@@ -98,7 +98,7 @@ Example variables:
 
 MODEL_PATH=/app/models/model.pkl
 
-THRESHOLD=0.45
+THRESHOLD=0.54
 
 DATASET_NAME=guychuk/benign-malicious-prompt-classification
 

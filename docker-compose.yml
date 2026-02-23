@@ -3,22 +3,33 @@ services:
     build:
       context: .
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8000}:8000"
     environment:
       ALLOWED_ORIGINS: '${ALLOWED_ORIGINS:-["http://localhost:5173", "http://127.0.0.1:5173"]}'
-      FASTUI_ENABLED: "${FASTUI_ENABLED:-true}"
       API_KEYS: "${API_KEYS:-[]}"
+      # WARNING: Default key for development only. Override in production.
       API_KEY: "${API_KEY:-dev-secret-key-123}"
-      DECISION_THRESHOLD: "${DECISION_THRESHOLD:-0.45}"
+      DECISION_THRESHOLD: "${DECISION_THRESHOLD:-0.54}"
       RATE_LIMIT_MAX: "${RATE_LIMIT_MAX:-100}"
       BREAKER_ENABLED: "${BREAKER_ENABLED:-true}"
       WORKERS: "${WORKERS:-4}"
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
   frontend:
     build:
       context: ./frontend
       args:
-        VITE_API_URL: http://localhost:8000
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
     ports:
-      - "5173:80"
+      - "${FRONTEND_PORT:-5173}:80"
     depends_on:
       - backend

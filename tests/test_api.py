@@ -39,13 +39,7 @@ def test_requirements() -> None:
 
 
 def _create_client() -> TestClient:
-    os.environ.setdefault("DECISION_THRESHOLD", "0.45")
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-    
-    # Ensure settings are loaded and patched
-    # Use a fixed key for tests to avoid passing it around, or use the first key in settings
-    # But since we want to avoid hardcoded secrets in code, let's use a dynamic one 
-    # and access it via config in tests.
     
     # Generate a key if not already set for testing
     if not src.config.settings.api_keys or "test-api-key" not in src.config.settings.api_keys[0]:
@@ -141,3 +135,15 @@ def test_batch_endpoint() -> None:
         assert "text,label,probability" in content
         assert "Hello world,BENIGN" in content
         assert "You are a bad actor!,BENIGN" in content
+
+
+def test_predict_rejects_whitespace_only_text() -> None:
+    """Ensure texts that are only whitespace are rejected after stripping."""
+    with _create_client() as client:
+        response = client.post(
+            "/v1/predict",
+            json={"texts": ["   "]},
+            headers={"x-api-key": src.config.settings.api_keys[0]},
+        )
+        assert response.status_code == 400
+        assert "Empty text" in response.json()["detail"]

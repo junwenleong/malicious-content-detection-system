@@ -102,8 +102,8 @@ function App() {
             indicatorColor="primary"
             textColor="primary"
           >
-            <Tab label="Single Text" />
-            <Tab label="Batch CSV" />
+            <Tab label="Analyze Text" />
+            <Tab label="Batch Upload" />
           </Tabs>
           <Box p={3}>
             {tab === 0 && <AnalyzeTab apiUrl={apiUrl} headers={headers} />}

@@ -49,12 +49,12 @@ export function ConnectionPanel({
             helperText="e.g. http://localhost:8000"
             />
             <TextField
-            label="API Key (Optional)"
+            label="API Key"
             value={apiKey}
             onChange={(event) => setApiKey(event.target.value)}
             type="password"
             fullWidth
-            helperText="Leave empty for local dev"
+            helperText="Required for authentication. Default dev key: dev-secret-key-123"
             />
         </Box>
         <Box mt={2}>

@@ -8,9 +8,13 @@ mypy>=1.8.0
 black>=24.0.0
 types-requests
 types-PyYAML
+python-dotenv>=1.0.0
 
 # Analysis & Notebooks
 jupyter>=1.0.0
 pandas>=2.0.0
 matplotlib>=3.8.0
 seaborn>=0.13.0
+
+# Training
+datasets>=2.0.0

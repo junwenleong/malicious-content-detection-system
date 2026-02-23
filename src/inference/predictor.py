@@ -1,4 +1,5 @@
 import os
+import re
 import time
 import hashlib
 import unicodedata
@@ -32,19 +33,32 @@ class Predictor(BasePredictor):
         self._cache_size = 10000
         self._lock = threading.Lock()
 
+    def _cache_key(self, text: str) -> str:
+        """Generate a cache key. Use hash for long texts to avoid memory bloat."""
+        if len(text) > 512:
+            return hashlib.sha256(text.encode("utf-8")).hexdigest()
+        return text
+
     def _get_from_cache(self, text: str) -> Optional[float]:
+        key = self._cache_key(text)
         with self._lock:
-            if text in self._cache:
-                self._cache.move_to_end(text)
-                return self._cache[text]
+            if key in self._cache:
+                self._cache.move_to_end(key)
+                return self._cache[key]
         return None
 
     def _add_to_cache(self, text: str, prob: float) -> None:
+        key = self._cache_key(text)
         with self._lock:
-            self._cache[text] = prob
-            self._cache.move_to_end(text)
+            self._cache[key] = prob
+            self._cache.move_to_end(key)
             if len(self._cache) > self._cache_size:
                 self._cache.popitem(last=False)
+
+    def clear_cache(self) -> None:
+        """Clear the prediction cache. Useful after model updates or threshold changes."""
+        with self._lock:
+            self._cache.clear()
 
     def _verify_checksum(self, file_path: str, expected_hash: str) -> None:
         """Verify file integrity to prevent loading tampered models."""
@@ -60,9 +74,14 @@ class Predictor(BasePredictor):
                 f"Expected {expected_hash}, got {calculated_hash}"
             )
 
+    # Compiled regex for stripping control characters
+    _CONTROL_CHAR_RE = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]')
+
     def _normalize_text(self, text: str) -> str:
-        """Normalize text to NFKC form to handle homoglyphs and special characters."""
-        return unicodedata.normalize("NFKC", text)
+        """Normalize text to NFKC form and strip control characters."""
+        normalized = unicodedata.normalize("NFKC", text)
+        normalized = self._CONTROL_CHAR_RE.sub('', normalized)
+        return normalized
 
     def predict(
         self, texts: List[str], threshold: Optional[float] = None
@@ -70,7 +89,7 @@ class Predictor(BasePredictor):
         if not texts:
             return [], [], 0.0
 
-        start_time = time.time()
+        start_time = time.monotonic()
 
         # Sanitize input
         normalized_texts = [self._normalize_text(t) for t in texts]
@@ -105,7 +124,7 @@ class Predictor(BasePredictor):
             else float(self.config["optimal_threshold"])
         )
         labels = ["MALICIOUS" if p >= effective_threshold else "BENIGN" for p in probs]
-        latency = time.time() - start_time
+        latency = time.monotonic() - start_time
         return labels, probs, latency
 
     async def apredict(

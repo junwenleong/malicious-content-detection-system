@@ -81,4 +81,4 @@ async def verify_signature(request: Request) -> None:
                 "correlation_id": getattr(request.state, "correlation_id", None)
             })
         )
-        raise HTTPException(status_code=403, detail="Invalid signature")
+        raise HTTPException(status_code=401, detail="Invalid signature")

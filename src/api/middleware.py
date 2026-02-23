@@ -12,7 +12,7 @@ REQUEST_LATENCY = Histogram("http_request_duration_seconds", "HTTP Request Durat
 
 class PrometheusMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        start_time = time.time()
+        start_time = time.monotonic()
         status_code = 500
         
         try:
@@ -24,7 +24,7 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
             status_code = 500
             raise e
         finally:
-            duration = time.time() - start_time
+            duration = time.monotonic() - start_time
             REQUEST_COUNT.labels(
                 method=request.method,
                 endpoint=request.url.path,
@@ -42,13 +42,16 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Content-Security-Policy"] = "default-src 'self'"
-        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["X-XSS-Protection"] = "0"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
         return response
 
 class AuditMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         client_ip = request.client.host if request.client else "unknown"
         path = request.url.path
+        correlation_id = getattr(request.state, "correlation_id", None)
         
         response = await call_next(request)
         
@@ -61,7 +64,8 @@ class AuditMiddleware(BaseHTTPMiddleware):
                     "client_ip": client_ip,
                     "path": path,
                     "status_code": response.status_code,
-                    "method": request.method
+                    "method": request.method,
+                    "correlation_id": correlation_id,
                 })
             )
         # Success (2xx) on protected paths (heuristic: has api key header)
@@ -72,7 +76,8 @@ class AuditMiddleware(BaseHTTPMiddleware):
                     "client_ip": client_ip,
                     "path": path,
                     "status_code": response.status_code,
-                    "method": request.method
+                    "method": request.method,
+                    "correlation_id": correlation_id,
                 })
             )
         

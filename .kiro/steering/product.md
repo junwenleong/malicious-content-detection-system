@@ -22,7 +22,7 @@
    - Optimized with parallelization for large datasets
 
 3. **Observability**
-   - Prometheus metrics at `/metrics/prometheus`
+   - Prometheus metrics at `/metrics`
    - JSON structured logging with correlation IDs
    - Health checks at `/health`
 
@@ -36,7 +36,7 @@
 - **Vectorizer**: TF-IDF (20k features, 1-2 grams)
 - **Classifier**: Logistic Regression (C=10, lbfgs solver)
 - **Calibration**: Isotonic calibration for reliable probabilities
-- **Decision Threshold**: 0.45 (optimized for F1 score)
+- **Decision Threshold**: 0.54 (optimized for F1 score)
 
 ## Deployment Model
 
