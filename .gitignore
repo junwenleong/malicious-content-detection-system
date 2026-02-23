@@ -7,6 +7,9 @@ __pycache__/
 .venv/
 venv/
 ENV/
+.pytest_cache/
+
+# Environment files
 .env
 .env.*
 !.env.production.example
@@ -27,26 +30,26 @@ data/processed/*
 *.h5
 *.pt
 
-# OS
-.DS_Store
+# Allow committed demo model artifacts
+!models/malicious_content_detector_calibrated.pkl
+!models/malicious_content_detector_config.pkl
+
+# Test outputs and CSV files
 *.csv
 test_batch.csv
 predictions_output.csv
 
-# Test outputs
-.pytest_cache/
-__pycache__/
-*.pyc
+# Docker
+docker-compose.override.yml
 
-# Jupyter
+# OS
+.DS_Store
+Thumbs.db
 
-# Test files
-*.csv
-
-# Jupyter auto-save files (notebooks in notebooks/ are tracked)
-.ipynb_checkpoints/
-
-# Allow committed demo model artifacts
-!malicious_content_detector_calibrated.pkl
-!malicious_content_detector_config.pkl
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
