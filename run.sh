@@ -45,6 +45,10 @@ echo -e "\033[33mBuilding and starting containers...\033[0m"
 echo -e "\033[33mBackend will run on port: $BACKEND_PORT\033[0m"
 echo -e "\033[33mFrontend will run on port: $FRONTEND_PORT\033[0m"
 
+# Clean up any existing containers first
+echo -e "\033[33mCleaning up existing containers...\033[0m"
+docker compose down 2>/dev/null || true
+
 # Create a temporary docker-compose override
 cat > docker-compose.override.yml <<EOF
 services:

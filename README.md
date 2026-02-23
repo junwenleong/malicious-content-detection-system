@@ -332,6 +332,19 @@ curl http://localhost:8000/model-info
 
 ---
 
+## CI/CD Pipeline
+
+This project uses GitHub Actions for continuous integration. The pipeline runs on every push and pull request:
+
+- ✅ Backend linting (Ruff), type checking (Mypy), and tests (Pytest)
+- ✅ Frontend linting (ESLint), type checking (TypeScript), and build (Vite)
+- ✅ Docker image builds for both services
+- ✅ Security scanning with Trivy
+
+See [.github/workflows/README.md](.github/workflows/README.md) for details.
+
+---
+
 ##### Development
 
 ### Linting
