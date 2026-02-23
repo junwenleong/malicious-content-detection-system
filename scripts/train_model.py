@@ -24,6 +24,7 @@ from datetime import timedelta
 import joblib
 import numpy as np
 import pandas as pd
+import psutil
 from datasets import load_dataset
 from sklearn.calibration import CalibratedClassifierCV, calibration_curve
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -59,6 +60,9 @@ class TrainingConfig:
     val_size: float = 0.15
     test_size: float = 0.15
 
+    # Memory management
+    sample_size: int | None = None  # If set, subsample training data
+    
     # GridSearchCV
     cv_folds: int = 5
     n_jobs: int = -1
@@ -75,6 +79,17 @@ class TrainingConfig:
         "tfidf__min_df": [1, 2, 5],
         "tfidf__max_df": [0.8, 0.9, 1.0],
         "lr__C": [0.01, 0.1, 1, 10],
+        "lr__solver": ["lbfgs"],
+    })
+    
+    # Quick mode: reduced parameter grid for faster training
+    quick_mode: bool = False
+    quick_param_grid: dict = field(default_factory=lambda: {
+        "tfidf__max_features": [20000],
+        "tfidf__ngram_range": [(1, 2)],
+        "tfidf__min_df": [5],
+        "tfidf__max_df": [1.0],
+        "lr__C": [10],
         "lr__solver": ["lbfgs"],
     })
 
@@ -111,6 +126,16 @@ def load_and_split_data(
         ) from e
 
     logger.info("Loaded %d samples", len(df))
+    
+    # Memory optimization: subsample if requested
+    if config.sample_size is not None and config.sample_size < len(df):
+        logger.warning(
+            "⚠️  SUBSAMPLING: Using %d samples (%.1f%%) to reduce memory usage",
+            config.sample_size, 100 * config.sample_size / len(df)
+        )
+        df = df.sample(n=config.sample_size, random_state=config.random_state, stratify=df["label"])
+        logger.info("Subsampled to %d samples", len(df))
+    
     label_dist = df["label"].value_counts(normalize=True).to_dict()
     logger.info("Class distribution: %s", label_dist)
 
@@ -187,16 +212,37 @@ def train_model_with_gridsearch(
         ("lr", LogisticRegression(max_iter=1000, class_weight="balanced")),
     ])
 
-    n_combinations = int(np.prod([len(v) for v in config.param_grid.values()]))
+    # Use quick mode if requested
+    param_grid = config.quick_param_grid if config.quick_mode else config.param_grid
+    
+    n_combinations = int(np.prod([len(v) for v in param_grid.values()]))
+    total_fits = n_combinations * config.cv_folds
+    
+    if config.quick_mode:
+        logger.info("⚡ QUICK MODE: Using reduced parameter grid")
+    
     logger.info(
         "Parameter combinations: %d × %d-fold CV = %d model fits",
-        n_combinations, config.cv_folds, n_combinations * config.cv_folds,
+        n_combinations, config.cv_folds, total_fits,
     )
+    
+    # Estimate memory usage
+    est_memory_gb = (len(train_texts) * 20000 * 8 * total_fits) / (1024**3)
+    logger.info("Estimated peak memory usage: ~%.1f GB", est_memory_gb)
+    
+    if est_memory_gb > 32 and not config.quick_mode and config.sample_size is None:
+        logger.warning(
+            "⚠️  HIGH MEMORY USAGE EXPECTED! Consider using:\n"
+            "   --quick (fast training with good params)\n"
+            "   --sample-size 50000 (subsample dataset)\n"
+            "   --n-jobs 1 (reduce parallelism)"
+        )
+    
     logger.info("This may take several minutes to hours depending on hardware...")
 
     grid = GridSearchCV(
         estimator=pipe,
-        param_grid=config.param_grid,
+        param_grid=param_grid,
         scoring="roc_auc",
         cv=config.cv_folds,
         n_jobs=config.n_jobs,
@@ -476,6 +522,20 @@ def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Train malicious content detection model",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        epilog="""
+Memory-Efficient Training Examples:
+  # Quick training with good defaults (recommended for laptops)
+  python scripts/train_model.py --quick
+  
+  # Subsample dataset to 50k rows
+  python scripts/train_model.py --sample-size 50000
+  
+  # Reduce parallelism (slower but less memory)
+  python scripts/train_model.py --n-jobs 1
+  
+  # Combine strategies for very limited memory
+  python scripts/train_model.py --quick --sample-size 50000 --n-jobs 1
+        """,
     )
     parser.add_argument(
         "--output-dir", type=str, default="models",
@@ -497,6 +557,18 @@ def parse_arguments() -> argparse.Namespace:
         "--test-size", type=float, default=0.15,
         help="Proportion of data for testing (0.0-1.0)",
     )
+    parser.add_argument(
+        "--sample-size", type=int, default=None,
+        help="Subsample dataset to N rows (reduces memory usage)",
+    )
+    parser.add_argument(
+        "--quick", action="store_true",
+        help="Use reduced parameter grid for faster training (good defaults)",
+    )
+    parser.add_argument(
+        "--n-jobs", type=int, default=-1,
+        help="Number of parallel jobs for GridSearchCV (-1 = all cores, 1 = sequential)",
+    )
     return parser.parse_args()
 
 
@@ -511,6 +583,23 @@ def main() -> None:
     logger.info("=" * 70)
     logger.info("MALICIOUS CONTENT DETECTION - MODEL TRAINING")
     logger.info("=" * 70)
+    
+    # Memory warning
+    import psutil
+    available_gb = psutil.virtual_memory().available / (1024**3)
+    logger.info("Available system memory: %.1f GB", available_gb)
+    
+    if available_gb < 16 and not (args.quick or args.sample_size):
+        logger.warning(
+            "⚠️  LOW MEMORY WARNING!\n"
+            "   Full training requires ~60GB RAM and may crash your system.\n"
+            "   Recommended options for this machine:\n"
+            "     --quick (uses good defaults, ~10GB RAM, 10-30 min)\n"
+            "     --sample-size 50000 (subsample dataset, ~20GB RAM)\n"
+            "     --n-jobs 1 (sequential processing, slower but less memory)\n"
+            "   Press Ctrl+C within 5 seconds to cancel..."
+        )
+        time.sleep(5)
 
     config = TrainingConfig(
         output_dir=args.output_dir,
@@ -518,6 +607,9 @@ def main() -> None:
         train_size=args.train_size,
         val_size=args.val_size,
         test_size=args.test_size,
+        sample_size=args.sample_size,
+        quick_mode=args.quick,
+        n_jobs=args.n_jobs,
     )
 
     # Validate split sizes
