@@ -1,4 +1,4 @@
-import { Alert, Box, Paper, TextField, Typography, Collapse, IconButton, Chip, Button } from '@mui/material'
+import { Alert, Box, Paper, TextField, Typography, Collapse, Chip, Button } from '@mui/material'
 import { useState } from 'react'
 
 interface ConnectionPanelProps {
