@@ -1,5 +1,4 @@
 import time
-import pytest
 from src.utils.circuit_breaker import CircuitBreaker
 
 def test_circuit_breaker_flow():

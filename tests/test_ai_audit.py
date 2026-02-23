@@ -1,7 +1,6 @@
 
 import pytest
 import joblib
-import os
 import hashlib
 import threading
 import numpy as np
@@ -26,11 +25,7 @@ def test_checksum_verification_failure(tmp_path, mock_settings):
     joblib.dump({"classes_": [0, 1]}, model_path)
     joblib.dump({"positive_class": 1}, config_path)
     
-    # Calculate actual hash
-    with open(model_path, "rb") as f:
-        actual_hash = hashlib.sha256(f.read()).hexdigest()
-    
-    # Set expected hash to something else
+    # Set expected hash to something else (don't need to calculate actual)
     mock_settings.model_sha256 = "wrong_hash"
     mock_settings.config_sha256 = "wrong_hash"
     
@@ -65,30 +60,18 @@ def test_checksum_verification_success(tmp_path, mock_settings):
     assert predictor is not None
 
 def test_input_normalization():
-    # We can test _normalize_text directly if we can access it, or via predict
-    # mocking the model
-    
-    # Setup a predictor with mocked init (to skip file checks)
+    # Test _normalize_text via predict with mocked model
     with patch.object(Predictor, "__init__", return_value=None):
         predictor = Predictor("dummy", "dummy")
         predictor._lock = threading.Lock()
         predictor._cache = OrderedDict()
         predictor._cache_size = 1000
         predictor.model = MagicMock()
-        predictor.model.predict_proba.return_value = np.array([[0.9, 0.1]]) # Mock return numpy array
+        predictor.model.predict_proba.return_value = np.array([[0.9, 0.1]])
         predictor.pos_index = 1
         predictor.config = {"optimal_threshold": 0.5}
         
-        # Test homoglyph normalization
-        # Cyrillic 'а' (U+0430) vs Latin 'a' (U+0061)
-        cyrillic_a = "\u0430"
-        latin_a = "a"
-        
-        # NFKC normalization should map compatible characters
-        # But wait, standard NFKC doesn't necessarily map Cyrillic 'a' to Latin 'a'.
-        # It maps compatibility characters (like ﬀ -> ff).
-        # Let's test a known NFKC transformation.
-        
+        # Test NFKC normalization with ligature
         # U+FB01 (fi ligature) -> "fi"
         ligature = "\ufb01"
         normalized = predictor._normalize_text(ligature)

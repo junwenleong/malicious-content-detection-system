@@ -1,5 +1,4 @@
 import time
-import pytest
 from src.utils.rate_limiter import RateLimiter
 
 def test_rate_limiter_basic():

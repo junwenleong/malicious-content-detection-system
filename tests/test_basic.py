@@ -1,6 +1,5 @@
 """Basic sanity tests for core utilities and policy logic."""
 
-import pytest
 from src.utils.policy import policy_decision
 
 
