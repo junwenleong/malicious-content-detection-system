@@ -15,7 +15,9 @@ class PredictRequest(BaseModel):
             if not isinstance(text, str) or not text.strip():
                 raise ValueError("Empty text not allowed")
             if len(text) > settings.max_text_length:
-                raise ValueError(f"Text exceeds maximum length of {settings.max_text_length} characters")
+                raise ValueError(
+                    f"Text exceeds maximum length of {settings.max_text_length} characters"
+                )
         return value
 
 

@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import src.config
 
+
 def test_imports() -> None:
     """Test that key dependencies can be imported."""
     try:
@@ -40,13 +41,16 @@ def test_requirements() -> None:
 
 def _create_client() -> TestClient:
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-    
+
     # Generate a key if not already set for testing
-    if not src.config.settings.api_keys or "test-api-key" not in src.config.settings.api_keys[0]:
-         test_key = "test-api-key-" + str(uuid.uuid4())
-         src.config.settings.api_key = test_key
-         src.config.settings.api_keys = [test_key]
-    
+    if (
+        not src.config.settings.api_keys
+        or "test-api-key" not in src.config.settings.api_keys[0]
+    ):
+        test_key = "test-api-key-" + str(uuid.uuid4())
+        src.config.settings.api_key = test_key
+        src.config.settings.api_keys = [test_key]
+
     from api.app import app
 
     return TestClient(app)
@@ -71,7 +75,7 @@ def test_predict_endpoint() -> None:
         response = client.post(
             "/v1/predict",
             json={"texts": ["Hello world"]},
-            headers={"x-api-key": src.config.settings.api_keys[0]}
+            headers={"x-api-key": src.config.settings.api_keys[0]},
         )
         assert response.status_code == 200
         data = response.json()
@@ -94,7 +98,7 @@ def test_threshold_behavior_extreme() -> None:
         response = client.post(
             "/v1/predict",
             json={"texts": ["Hello world"]},
-            headers={"x-api-key": src.config.settings.api_keys[0]}
+            headers={"x-api-key": src.config.settings.api_keys[0]},
         )
         assert response.status_code == 200
         data = response.json()
@@ -128,7 +132,7 @@ def test_batch_endpoint() -> None:
         response = client.post(
             "/v1/batch",
             files=files,
-            headers={"x-api-key": src.config.settings.api_keys[0]}
+            headers={"x-api-key": src.config.settings.api_keys[0]},
         )
         assert response.status_code == 200
         content = response.text

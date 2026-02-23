@@ -17,7 +17,9 @@ def require_api_key(request: Request) -> None:
     """Validate API key from request headers with rate-limited auth failure tracking."""
     if not settings.api_keys:
         logger.error("API Keys not configured in settings")
-        raise HTTPException(status_code=500, detail="Server configuration error: No API keys configured")
+        raise HTTPException(
+            status_code=500, detail="Server configuration error: No API keys configured"
+        )
 
     client_ip = request.client.host if request.client else "unknown"
     try:
@@ -28,11 +30,13 @@ def require_api_key(request: Request) -> None:
 
     if auth_limiter.is_blocked(client_ip):
         logger.warning(
-            json.dumps({
-                "event": "auth_rate_limit_exceeded",
-                "client_ip": client_ip,
-                "correlation_id": getattr(request.state, "correlation_id", None)
-            })
+            json.dumps(
+                {
+                    "event": "auth_rate_limit_exceeded",
+                    "client_ip": client_ip,
+                    "correlation_id": getattr(request.state, "correlation_id", None),
+                }
+            )
         )
         raise HTTPException(
             status_code=429,
@@ -44,11 +48,13 @@ def require_api_key(request: Request) -> None:
     if provided not in settings.api_keys:
         auth_limiter.record_attempt(client_ip)
         logger.warning(
-            json.dumps({
-                "event": "invalid_api_key",
-                "client_ip": client_ip,
-                "correlation_id": getattr(request.state, "correlation_id", None)
-            })
+            json.dumps(
+                {
+                    "event": "invalid_api_key",
+                    "client_ip": client_ip,
+                    "correlation_id": getattr(request.state, "correlation_id", None),
+                }
+            )
         )
         raise HTTPException(status_code=403, detail="Invalid API key")
 

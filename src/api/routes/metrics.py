@@ -4,6 +4,7 @@ from fastapi.responses import Response
 
 router = APIRouter()
 
+
 @router.get("/metrics")
 async def metrics() -> Response:
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)

@@ -8,7 +8,11 @@ from typing import Any, AsyncGenerator, Dict, cast
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api.middleware import AuditMiddleware, SecurityHeadersMiddleware, PrometheusMiddleware
+from src.api.middleware import (
+    AuditMiddleware,
+    SecurityHeadersMiddleware,
+    PrometheusMiddleware,
+)
 from src.config import settings
 from src.inference.predictor import Predictor
 from src.utils.circuit_breaker import CircuitBreaker
@@ -72,7 +76,13 @@ app.add_middleware(
     allow_origins=settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type", "x-api-key", "X-Signature", "x-correlation-id", "x-request-id"],
+    allow_headers=[
+        "Content-Type",
+        "x-api-key",
+        "X-Signature",
+        "x-correlation-id",
+        "x-request-id",
+    ],
 )
 
 app.add_middleware(SecurityHeadersMiddleware)
@@ -162,5 +172,3 @@ def root() -> Dict[str, Any]:
             "docs": "/docs",
         },
     }
-
-

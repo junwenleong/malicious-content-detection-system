@@ -17,7 +17,9 @@ router = APIRouter(prefix="/v1")
 logger = logging.getLogger(__name__)
 
 
-@router.post("/predict", response_model=PredictResponse, dependencies=[Depends(verify_signature)])
+@router.post(
+    "/predict", response_model=PredictResponse, dependencies=[Depends(verify_signature)]
+)
 async def predict(
     request: PredictRequest,
     req: Request,
@@ -50,7 +52,9 @@ async def predict(
         return PredictResponse(predictions=[], metadata={})
     # Reject texts that are empty after stripping
     if any(not text for text in texts):
-        raise HTTPException(status_code=400, detail="Empty text not allowed after trimming")
+        raise HTTPException(
+            status_code=400, detail="Empty text not allowed after trimming"
+        )
 
     if len(texts) > settings.max_batch_items:
         raise HTTPException(status_code=400, detail="Batch size exceeds maximum items")
