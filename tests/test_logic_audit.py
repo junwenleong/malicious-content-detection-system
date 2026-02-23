@@ -35,10 +35,14 @@ def test_circuit_breaker_recovery(mock_time):
     mock_time.monotonic.return_value = 100.05
     assert breaker.state == "open"
     
-    # Move time forward past cooldown
+    # Move time forward past cooldown - should be half-open
     mock_time.monotonic.return_value = 100.2
-    assert breaker.state == "closed"
+    assert breaker.state == "half-open"
     assert breaker.allow_request() is True
+    
+    # After successful request, should close
+    breaker.record_success()
+    assert breaker.state == "closed"
 
 def test_predictor_empty_input():
     # Create predictor with mocked internals

@@ -16,7 +16,7 @@ def health(request: Request, response: Response) -> Dict[str, Any]:
 
     is_healthy = predictor is not None
     
-    health_status = {
+    health_status: Dict[str, Any] = {
         "status": "healthy" if is_healthy else "unhealthy",
         "model_loaded": predictor is not None,
         "service_degraded": False,
@@ -28,11 +28,12 @@ def health(request: Request, response: Response) -> Dict[str, Any]:
         health_status["status"] = "unhealthy"
 
     if breaker:
-        health_status["circuit_breaker"] = {
+        breaker_info: Dict[str, Any] = {
             "status": breaker.state,
             "failures": breaker.failure_count,
             "threshold": breaker.failure_threshold,
         }
+        health_status["circuit_breaker"] = breaker_info
         if breaker.state != "closed":
             health_status["status"] = "degraded"
             health_status["service_degraded"] = True

@@ -1,8 +1,10 @@
 import logging
 import time
 import json
+from typing import Callable, Awaitable
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 from prometheus_client import Counter, Histogram
 
 logger = logging.getLogger("audit")
@@ -11,7 +13,9 @@ REQUEST_COUNT = Counter("http_requests_total", "Total HTTP Requests", ["method",
 REQUEST_LATENCY = Histogram("http_request_duration_seconds", "HTTP Request Duration", ["method", "endpoint"])
 
 class PrometheusMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         start_time = time.monotonic()
         status_code = 500
         
@@ -36,7 +40,9 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
             ).observe(duration)
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         response = await call_next(request)
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         response.headers["X-Content-Type-Options"] = "nosniff"
@@ -48,7 +54,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 class AuditMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         client_ip = request.client.host if request.client else "unknown"
         path = request.url.path
         correlation_id = getattr(request.state, "correlation_id", None)
