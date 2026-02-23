@@ -1,7 +1,5 @@
 
 import threading
-import time
-import pytest
 from src.utils.circuit_breaker import CircuitBreaker
 from src.inference.predictor import Predictor
 from unittest.mock import MagicMock, patch

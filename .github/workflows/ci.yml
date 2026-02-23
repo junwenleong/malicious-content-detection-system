@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ main, develop ]
 
+permissions:
+  contents: read
+  security-events: write  # Required for uploading SARIF results
+
 jobs:
   backend-tests:
     name: Backend Tests & Linting
@@ -128,7 +132,7 @@ jobs:
         severity: 'CRITICAL,HIGH'
     
     - name: Upload Trivy results to GitHub Security
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@v4
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'

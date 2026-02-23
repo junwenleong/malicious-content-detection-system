@@ -14,7 +14,6 @@ LATENCY_THRESHOLD_BATCH = 200
 @pytest.fixture
 def client():
     # Ensure API key is set for tests
-    original_keys = settings.api_keys
     test_key = "perf-test-key"
     if not settings.api_keys:
         settings.api_keys = [test_key]

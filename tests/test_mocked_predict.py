@@ -1,7 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import MagicMock, AsyncMock
-import json
 
 from api.app import app
 from src.config import settings

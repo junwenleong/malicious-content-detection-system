@@ -1,6 +1,5 @@
 """Tests for global error handling and RFC 7807 Problem Details responses."""
 
-import pytest
 from fastapi import APIRouter
 from fastapi.testclient import TestClient
 from api.app import app
