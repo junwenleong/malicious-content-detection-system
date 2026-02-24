@@ -71,7 +71,9 @@ class TrainingConfig:
     verbose: int = 1
 
     # Calibration
-    calibration_method: str = "isotonic"
+    # Note: Sigmoid is more stable than isotonic for smaller datasets
+    # The demo uses a 20% sample, making sigmoid more appropriate
+    calibration_method: str = "sigmoid"
     calibration_cv: int = 5
 
     # Parameter grid (from notebook)
@@ -314,7 +316,11 @@ def calibrate_model(
     y_train: np.ndarray,
     config: TrainingConfig,
 ) -> CalibratedClassifierCV:
-    """Apply isotonic calibration to the trained model."""
+    """Apply sigmoid calibration to the trained model.
+
+    Note: Sigmoid calibration is more stable than isotonic for smaller datasets.
+    The demo uses a 20% sample, making sigmoid more appropriate.
+    """
     logger.info("=" * 70)
     logger.info("MODEL CALIBRATION")
     logger.info("=" * 70)
