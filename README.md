@@ -48,7 +48,7 @@ Before running the system, set up your environment:
    ```powershell
    # Backend
    cp .env.development.example .env
-   
+
    # Frontend
    cp frontend/.env.development.example frontend/.env
    ```
@@ -90,7 +90,7 @@ To run the integration tests against a running backend:
    ```bash
    # Backend
    cp .env.development.example .env
-   
+
    # Frontend
    cp frontend/.env.development.example frontend/.env
    ```
@@ -130,10 +130,10 @@ Modern APIs (especially LLM APIs) face systematic abuse:
 - **Automated policy violations** at scale
 - **Coordinated campaigns** exploiting API endpoints
 
-Manual review doesn't scale well to the amount of requests APIs get. 
+Manual review doesn't scale well to the amount of requests APIs get.
 
 This system uses ML to detect malicious content **before** it reaches downstream systems, with:
-- **High recall** (catch violations) 
+- **High recall** (catch violations)
 - **Calibrated probabilities** (reliable confidence scores)
 - **Production-ready deployment** (real-time + batch processing)
 
@@ -215,9 +215,9 @@ This system uses ML to detect malicious content **before** it reaches downstream
 
 > **⚠️ Important Note on Model Behavior:**
 > The public dataset used for this demo is specifically designed to detect **prompt injection / jailbreak attempts** (e.g., "Ignore previous instructions..."), rather than direct harmful questions.
-> 
+>
 > As per the dataset documentation: *"We decided to classify prompts to malicious only if there's an attempt to manipulate them - that means that a bad prompt (i.e asking how to create a bomb) will be classified as benign since it's a straight up question!"*
-> 
+>
 > Therefore, simple harmful queries like "how do i hurt him" are **correctly classified as BENIGN** by this specific model. Real-world enterprise deployments would use a composite dataset covering both direct harm and jailbreaks.
 
 **Data Sensitivity**
@@ -395,16 +395,16 @@ See [.github/workflows/README.md](.github/workflows/README.md) for details.
    ```bash
    # Backend
    pip install -r requirements-dev.txt
-   
+
    # Frontend
    cd frontend && npm install && cd ..
    ```
 
 2. **Setup pre-commit hook (Recommended):**
    ```bash
-   ./scripts/setup-pre-commit.sh
+   ./scripts/setup-hooks.sh
    ```
-   
+
    This installs a Git hook that automatically runs linting checks before every commit, catching issues early.
 
 3. **Configure your IDE (Optional but Recommended):**

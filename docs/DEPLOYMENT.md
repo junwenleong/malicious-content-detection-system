@@ -496,7 +496,7 @@ MODEL_PATH = f"models/{MODEL_VERSION}/malicious_content_detector_calibrated.pkl"
 
 ## Cost Estimation (sample;dummy)
 
-### AWS (us-east-1) 
+### AWS (us-east-1)
 
 | Component | Type | Cost/month |
 |-----------|------|------------|

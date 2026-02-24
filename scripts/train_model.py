@@ -41,7 +41,7 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
-from sklearn.model_selection import GridSearchCV, train_test_split
+from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
 
 logger = logging.getLogger(__name__)
@@ -562,13 +562,13 @@ def parse_arguments() -> argparse.Namespace:
 Memory-Efficient Training Examples:
   # Quick training with good defaults (recommended for laptops)
   python scripts/train_model.py --quick
-  
+
   # Subsample dataset to 50k rows
   python scripts/train_model.py --sample-size 50000
-  
+
   # Reduce parallelism (slower but less memory)
   python scripts/train_model.py --n-jobs 1
-  
+
   # Combine strategies for very limited memory
   python scripts/train_model.py --quick --sample-size 50000 --n-jobs 1
         """,

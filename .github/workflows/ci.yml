@@ -14,34 +14,34 @@ jobs:
   backend-tests:
     name: Backend Tests & Linting
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
         cache: 'pip'
-    
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements-dev.txt
-    
+
     - name: Lint with Ruff
       run: |
         ruff check src/ api/ tests/
-    
+
     - name: Type check with Mypy
       run: |
         mypy src/ api/
-    
+
     - name: Format check with Black
       run: |
         black --check src/ api/ tests/
-    
+
     - name: Run unit tests
       run: |
         pytest tests/ -v --cov=src --cov-report=term-missing
@@ -53,30 +53,30 @@ jobs:
   frontend-build:
     name: Frontend Build & Lint
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
+
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
         cache: 'npm'
         cache-dependency-path: frontend/package-lock.json
-    
+
     - name: Install dependencies
       working-directory: frontend
       run: npm ci
-    
+
     - name: Lint with ESLint
       working-directory: frontend
       run: npm run lint
-    
+
     - name: Type check
       working-directory: frontend
       run: npx tsc --noEmit
-    
+
     - name: Build
       working-directory: frontend
       run: npm run build
@@ -86,14 +86,14 @@ jobs:
   docker-build:
     name: Docker Build Test
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
-    
+
     - name: Build backend image
       uses: docker/build-push-action@v5
       with:
@@ -102,7 +102,7 @@ jobs:
         tags: malicious-content-detection:test
         cache-from: type=gha
         cache-to: type=gha,mode=max
-    
+
     - name: Build frontend image
       uses: docker/build-push-action@v5
       with:
@@ -117,11 +117,11 @@ jobs:
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
+
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@0.28.0
       with:
@@ -130,7 +130,7 @@ jobs:
         format: 'sarif'
         output: 'trivy-results.sarif'
         severity: 'CRITICAL,HIGH'
-    
+
     - name: Upload Trivy results to GitHub Security
       uses: github/codeql-action/upload-sarif@v4
       if: always()
