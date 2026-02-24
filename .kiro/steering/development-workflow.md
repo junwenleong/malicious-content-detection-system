@@ -10,7 +10,7 @@ This document clarifies when to run quality checks and how to avoid duplication.
 - **Purpose**: Fast local validation before commit
 - **Runs**:
   - `ruff check --fix` (linting with auto-fix)
-  - `ruff format` (code formatting)
+  - `black` (code formatting - matches CI/CD)
   - `mypy` (type checking)
   - `npm run lint` (ESLint for frontend)
 

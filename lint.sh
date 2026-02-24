@@ -20,8 +20,8 @@ fi
 
 echo "Running Ruff Check and Fix..."
 ruff check . --fix --ignore E741
-echo "Running Ruff Format..."
-ruff format .
+echo "Running Black Format..."
+black src/ api/ tests/
 
 echo "Running Mypy..."
 # mypy might need some ignore flags if dependencies aren't perfect, but let's try strict first
