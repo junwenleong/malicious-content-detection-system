@@ -22,6 +22,8 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 
 import joblib
+from typing import Any
+
 import numpy as np
 import pandas as pd
 import psutil
@@ -282,7 +284,7 @@ def evaluate_raw_model(
     model: Pipeline,
     val_texts: pd.Series,
     y_val: np.ndarray,
-) -> np.ndarray:  # type: ignore[type-arg]
+) -> Any:
     """Evaluate the raw (uncalibrated) model on validation set."""
     logger.info("Evaluating raw model on validation set...")
     start = time.monotonic()
