@@ -282,7 +282,7 @@ def evaluate_raw_model(
     model: Pipeline,
     val_texts: pd.Series,
     y_val: np.ndarray,
-) -> np.ndarray[tuple[int], np.dtype[np.floating]]:  # type: ignore[type-arg]
+) -> np.ndarray:  # type: ignore[type-arg]
     """Evaluate the raw (uncalibrated) model on validation set."""
     logger.info("Evaluating raw model on validation set...")
     start = time.monotonic()
