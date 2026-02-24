@@ -62,7 +62,7 @@ class TrainingConfig:
 
     # Memory management
     sample_size: int | None = None  # If set, subsample training data
-    
+
     # GridSearchCV
     cv_folds: int = 5
     n_jobs: int = -1
@@ -73,25 +73,29 @@ class TrainingConfig:
     calibration_cv: int = 5
 
     # Parameter grid (from notebook)
-    param_grid: dict = field(default_factory=lambda: {
-        "tfidf__max_features": [5000, 10000, 20000],
-        "tfidf__ngram_range": [(1, 1), (1, 2)],
-        "tfidf__min_df": [1, 2, 5],
-        "tfidf__max_df": [0.8, 0.9, 1.0],
-        "lr__C": [0.01, 0.1, 1, 10],
-        "lr__solver": ["lbfgs"],
-    })
-    
+    param_grid: dict[str, list[object]] = field(
+        default_factory=lambda: {
+            "tfidf__max_features": [5000, 10000, 20000],
+            "tfidf__ngram_range": [(1, 1), (1, 2)],
+            "tfidf__min_df": [1, 2, 5],
+            "tfidf__max_df": [0.8, 0.9, 1.0],
+            "lr__C": [0.01, 0.1, 1, 10],
+            "lr__solver": ["lbfgs"],
+        }
+    )
+
     # Quick mode: reduced parameter grid for faster training
     quick_mode: bool = False
-    quick_param_grid: dict = field(default_factory=lambda: {
-        "tfidf__max_features": [20000],
-        "tfidf__ngram_range": [(1, 2)],
-        "tfidf__min_df": [5],
-        "tfidf__max_df": [1.0],
-        "lr__C": [10],
-        "lr__solver": ["lbfgs"],
-    })
+    quick_param_grid: dict[str, list[object]] = field(
+        default_factory=lambda: {
+            "tfidf__max_features": [20000],
+            "tfidf__ngram_range": [(1, 2)],
+            "tfidf__min_df": [5],
+            "tfidf__max_df": [1.0],
+            "lr__C": [10],
+            "lr__solver": ["lbfgs"],
+        }
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -113,7 +117,9 @@ def load_and_split_data(
     config: TrainingConfig,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Load HuggingFace dataset and perform stratified 70/15/15 split."""
-    logger.info("Loading dataset from HuggingFace (guychuk/benign-malicious-prompt-classification)...")
+    logger.info(
+        "Loading dataset from HuggingFace (guychuk/benign-malicious-prompt-classification)..."
+    )
 
     try:
         dataset = load_dataset("guychuk/benign-malicious-prompt-classification")
@@ -126,16 +132,19 @@ def load_and_split_data(
         ) from e
 
     logger.info("Loaded %d samples", len(df))
-    
+
     # Memory optimization: subsample if requested
     if config.sample_size is not None and config.sample_size < len(df):
         logger.warning(
             "⚠️  SUBSAMPLING: Using %d samples (%.1f%%) to reduce memory usage",
-            config.sample_size, 100 * config.sample_size / len(df)
+            config.sample_size,
+            100 * config.sample_size / len(df),
         )
-        df = df.sample(n=config.sample_size, random_state=config.random_state, stratify=df["label"])
+        df = df.sample(
+            n=config.sample_size, random_state=config.random_state, stratify=df["label"]
+        )
         logger.info("Subsampled to %d samples", len(df))
-    
+
     label_dist = df["label"].value_counts(normalize=True).to_dict()
     logger.info("Class distribution: %s", label_dist)
 
@@ -157,7 +166,9 @@ def load_and_split_data(
 
     logger.info(
         "Split sizes - Train: %d, Val: %d, Test: %d",
-        len(train_df), len(val_df), len(test_df),
+        len(train_df),
+        len(val_df),
+        len(test_df),
     )
 
     return train_df, val_df, test_df
@@ -193,7 +204,6 @@ def prepare_features_labels(
     return train_texts, val_texts, test_texts, y_train, y_val, y_test
 
 
-
 # ---------------------------------------------------------------------------
 # Model Training
 # ---------------------------------------------------------------------------
@@ -207,29 +217,33 @@ def train_model_with_gridsearch(
     logger.info("GRID SEARCH HYPERPARAMETER TUNING")
     logger.info("=" * 70)
 
-    pipe = Pipeline([
-        ("tfidf", TfidfVectorizer()),
-        ("lr", LogisticRegression(max_iter=1000, class_weight="balanced")),
-    ])
+    pipe = Pipeline(
+        [
+            ("tfidf", TfidfVectorizer()),
+            ("lr", LogisticRegression(max_iter=1000, class_weight="balanced")),
+        ]
+    )
 
     # Use quick mode if requested
     param_grid = config.quick_param_grid if config.quick_mode else config.param_grid
-    
+
     n_combinations = int(np.prod([len(v) for v in param_grid.values()]))
     total_fits = n_combinations * config.cv_folds
-    
+
     if config.quick_mode:
         logger.info("⚡ QUICK MODE: Using reduced parameter grid")
-    
+
     logger.info(
         "Parameter combinations: %d × %d-fold CV = %d model fits",
-        n_combinations, config.cv_folds, total_fits,
+        n_combinations,
+        config.cv_folds,
+        total_fits,
     )
-    
+
     # Estimate memory usage
     est_memory_gb = (len(train_texts) * 20000 * 8 * total_fits) / (1024**3)
     logger.info("Estimated peak memory usage: ~%.1f GB", est_memory_gb)
-    
+
     if est_memory_gb > 32 and not config.quick_mode and config.sample_size is None:
         logger.warning(
             "⚠️  HIGH MEMORY USAGE EXPECTED! Consider using:\n"
@@ -237,7 +251,7 @@ def train_model_with_gridsearch(
             "   --sample-size 50000 (subsample dataset)\n"
             "   --n-jobs 1 (reduce parallelism)"
         )
-    
+
     logger.info("This may take several minutes to hours depending on hardware...")
 
     grid = GridSearchCV(
@@ -268,7 +282,7 @@ def evaluate_raw_model(
     model: Pipeline,
     val_texts: pd.Series,
     y_val: np.ndarray,
-) -> np.ndarray:
+) -> np.ndarray[tuple[int], np.dtype[np.floating]]:  # type: ignore[type-arg]
     """Evaluate the raw (uncalibrated) model on validation set."""
     logger.info("Evaluating raw model on validation set...")
     start = time.monotonic()
@@ -280,7 +294,7 @@ def evaluate_raw_model(
     logger.info("Validation ROC AUC (raw model): %.4f", roc_auc_raw)
     logger.info("Validation evaluation took: %.2f seconds", elapsed)
 
-    return probs_val_raw
+    return probs_val_raw  # type: ignore[return-value]
 
 
 # ---------------------------------------------------------------------------
@@ -296,7 +310,9 @@ def calibrate_model(
     logger.info("=" * 70)
     logger.info("MODEL CALIBRATION")
     logger.info("=" * 70)
-    logger.info("Fitting calibration on training data (%d-fold CV)...", config.calibration_cv)
+    logger.info(
+        "Fitting calibration on training data (%d-fold CV)...", config.calibration_cv
+    )
 
     calibrated = CalibratedClassifierCV(
         base_model,
@@ -368,11 +384,15 @@ def optimize_threshold(
 
     # Precision-recall curve
     precision_val, recall_val, thresholds_val = precision_recall_curve(
-        y_val, probs_val_cal, pos_label=1,
+        y_val,
+        probs_val_cal,
+        pos_label=1,
     )
 
     # F1 scores at each threshold
-    f1_scores_val = 2 * (precision_val * recall_val) / (precision_val + recall_val + 1e-10)
+    f1_scores_val = (
+        2 * (precision_val * recall_val) / (precision_val + recall_val + 1e-10)
+    )
 
     best_idx = int(f1_scores_val.argmax())
     best_threshold = float(
@@ -427,7 +447,9 @@ def fbeta_analysis(
         optimal_thresholds_val[beta] = float(thresholds[opt_idx])
         logger.info(
             "  F%.1f: threshold = %.3f, score = %.3f",
-            beta, thresholds[opt_idx], scores[opt_idx],
+            beta,
+            thresholds[opt_idx],
+            scores[opt_idx],
         )
 
     chosen = optimal_thresholds_val[1]
@@ -444,7 +466,9 @@ def fbeta_analysis(
     logger.info(
         "Classification Report:\n%s",
         classification_report(
-            y_test, y_pred_test, target_names=["benign (0)", "malicious (1)"],
+            y_test,
+            y_pred_test,
+            target_names=["benign (0)", "malicious (1)"],
         ),
     )
 
@@ -460,12 +484,12 @@ def fbeta_analysis(
         y_pred = (probs_test >= thresh).astype(int)
         logger.info(
             "%s (threshold=%.3f): P=%.3f R=%.3f F1=%.3f",
-            name, thresh,
+            name,
+            thresh,
             precision_score(y_test, y_pred),
             recall_score(y_test, y_pred),
             f1_score(y_test, y_pred),
         )
-
 
 
 # ---------------------------------------------------------------------------
@@ -482,8 +506,12 @@ def save_model_artifacts(
 
     os.makedirs(config.output_dir, exist_ok=True)
 
-    model_path = os.path.join(config.output_dir, "malicious_content_detector_calibrated.pkl")
-    config_path = os.path.join(config.output_dir, "malicious_content_detector_config.pkl")
+    model_path = os.path.join(
+        config.output_dir, "malicious_content_detector_calibrated.pkl"
+    )
+    config_path = os.path.join(
+        config.output_dir, "malicious_content_detector_config.pkl"
+    )
 
     try:
         joblib.dump(calibrated_model, model_path)
@@ -538,35 +566,50 @@ Memory-Efficient Training Examples:
         """,
     )
     parser.add_argument(
-        "--output-dir", type=str, default="models",
+        "--output-dir",
+        type=str,
+        default="models",
         help="Directory to save trained model artifacts",
     )
     parser.add_argument(
-        "--random-seed", type=int, default=42,
+        "--random-seed",
+        type=int,
+        default=42,
         help="Random seed for reproducibility",
     )
     parser.add_argument(
-        "--train-size", type=float, default=0.7,
+        "--train-size",
+        type=float,
+        default=0.7,
         help="Proportion of data for training (0.0-1.0)",
     )
     parser.add_argument(
-        "--val-size", type=float, default=0.15,
+        "--val-size",
+        type=float,
+        default=0.15,
         help="Proportion of data for validation (0.0-1.0)",
     )
     parser.add_argument(
-        "--test-size", type=float, default=0.15,
+        "--test-size",
+        type=float,
+        default=0.15,
         help="Proportion of data for testing (0.0-1.0)",
     )
     parser.add_argument(
-        "--sample-size", type=int, default=None,
+        "--sample-size",
+        type=int,
+        default=None,
         help="Subsample dataset to N rows (reduces memory usage)",
     )
     parser.add_argument(
-        "--quick", action="store_true",
+        "--quick",
+        action="store_true",
         help="Use reduced parameter grid for faster training (good defaults)",
     )
     parser.add_argument(
-        "--n-jobs", type=int, default=-1,
+        "--n-jobs",
+        type=int,
+        default=-1,
         help="Number of parallel jobs for GridSearchCV (-1 = all cores, 1 = sequential)",
     )
     return parser.parse_args()
@@ -583,12 +626,11 @@ def main() -> None:
     logger.info("=" * 70)
     logger.info("MALICIOUS CONTENT DETECTION - MODEL TRAINING")
     logger.info("=" * 70)
-    
+
     # Memory warning
-    import psutil
     available_gb = psutil.virtual_memory().available / (1024**3)
     logger.info("Available system memory: %.1f GB", available_gb)
-    
+
     if available_gb < 16 and not (args.quick or args.sample_size):
         logger.warning(
             "⚠️  LOW MEMORY WARNING!\n"
@@ -644,7 +686,11 @@ def main() -> None:
 
         # 6. Evaluate calibration on val + test
         probs_val_cal, probs_test = evaluate_calibration(
-            calibrated_model, val_texts, y_val, test_texts, y_test,
+            calibrated_model,
+            val_texts,
+            y_val,
+            test_texts,
+            y_test,
         )
 
         # 7. Optimize threshold
@@ -659,7 +705,9 @@ def main() -> None:
         # 10. Report completion
         total_time = time.monotonic() - pipeline_start
         logger.info("=" * 70)
-        logger.info("TRAINING COMPLETED SUCCESSFULLY in %s", timedelta(seconds=int(total_time)))
+        logger.info(
+            "TRAINING COMPLETED SUCCESSFULLY in %s", timedelta(seconds=int(total_time))
+        )
         logger.info("=" * 70)
 
     except Exception:

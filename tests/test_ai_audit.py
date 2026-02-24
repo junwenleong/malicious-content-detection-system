@@ -1,3 +1,4 @@
+from typing import Any, Iterator
 import pytest
 import joblib
 import hashlib
@@ -11,14 +12,14 @@ from src.inference.predictor import Predictor
 
 # Mock settings to avoid dependency on actual config/env
 @pytest.fixture
-def mock_settings():
+def mock_settings() -> Iterator[MagicMock]:
     with patch("src.inference.predictor.settings") as mock:
         mock.model_sha256 = "dummy_hash"
         mock.config_sha256 = "dummy_hash"
         yield mock
 
 
-def test_checksum_verification_failure(tmp_path, mock_settings):
+def test_checksum_verification_failure(tmp_path: Any, mock_settings: Any) -> None:
     # Create dummy model files
     model_path = tmp_path / "model.pkl"
     config_path = tmp_path / "config.pkl"
@@ -35,14 +36,14 @@ def test_checksum_verification_failure(tmp_path, mock_settings):
 
 
 class SimpleModel:
-    def __init__(self):
+    def __init__(self) -> None:
         self.classes_ = [0, 1]
 
-    def predict_proba(self, X):
+    def predict_proba(self, X: Any) -> Any:
         return [[0.1, 0.9]] * len(X)
 
 
-def test_checksum_verification_success(tmp_path, mock_settings):
+def test_checksum_verification_success(tmp_path: Any, mock_settings: Any) -> None:
     # Create dummy model files
     model_path = tmp_path / "model.pkl"
     config_path = tmp_path / "config.pkl"
@@ -64,7 +65,7 @@ def test_checksum_verification_success(tmp_path, mock_settings):
     assert predictor is not None
 
 
-def test_input_normalization():
+def test_input_normalization() -> None:
     # Test _normalize_text via predict with mocked model
     with patch.object(Predictor, "__init__", return_value=None):
         predictor = Predictor("dummy", "dummy")

@@ -1,5 +1,6 @@
-import time
 import sys
+import time
+from typing import Generator
 
 import pytest
 from fastapi.testclient import TestClient
@@ -13,7 +14,7 @@ LATENCY_THRESHOLD_BATCH = 200
 
 
 @pytest.fixture
-def client():
+def client() -> Generator[TestClient, None, None]:
     # Ensure API key is set for tests
     test_key = "perf-test-key"
     if not settings.api_keys:
@@ -28,7 +29,7 @@ def client():
     # (Leaving it as is for simplicity in this script context)
 
 
-def test_inference_latency_single(client):
+def test_inference_latency_single(client: TestClient) -> None:
     """
     Ensure inference latency is under threshold for single input.
     """
@@ -47,12 +48,12 @@ def test_inference_latency_single(client):
     total_latency_ms = (end_time - start_time) * 1000
     print(f"\nSingle Request Latency: {total_latency_ms:.2f}ms")
 
-    assert (
-        total_latency_ms < LATENCY_THRESHOLD_SINGLE
-    ), f"Latency too high: {total_latency_ms:.2f}ms > {LATENCY_THRESHOLD_SINGLE}ms"
+    assert total_latency_ms < LATENCY_THRESHOLD_SINGLE, (
+        f"Latency too high: {total_latency_ms:.2f}ms > {LATENCY_THRESHOLD_SINGLE}ms"
+    )
 
 
-def test_inference_latency_batch(client):
+def test_inference_latency_batch(client: TestClient) -> None:
     """
     Ensure batch processing scales reasonably.
     """
@@ -71,9 +72,9 @@ def test_inference_latency_batch(client):
     total_latency_ms = (end_time - start_time) * 1000
     print(f"\nBatch (10) Request Latency: {total_latency_ms:.2f}ms")
 
-    assert (
-        total_latency_ms < LATENCY_THRESHOLD_BATCH
-    ), f"Batch latency too high: {total_latency_ms:.2f}ms > {LATENCY_THRESHOLD_BATCH}ms"
+    assert total_latency_ms < LATENCY_THRESHOLD_BATCH, (
+        f"Batch latency too high: {total_latency_ms:.2f}ms > {LATENCY_THRESHOLD_BATCH}ms"
+    )
 
 
 if __name__ == "__main__":
