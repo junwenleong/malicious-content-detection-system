@@ -54,7 +54,8 @@ def test_predictor_empty_input() -> None:
     predictor.model = MagicMock()
     predictor.config = {"positive_class": 1, "optimal_threshold": 0.5}
     predictor.pos_index = 1
-    predictor._cache: dict[str, tuple[int, float]] = {}
+    # Avoid type annotation on dynamic attribute
+    setattr(predictor, "_cache", {})
     predictor._cache_size = 10000
     predictor._lock = __import__("threading").Lock()
 
