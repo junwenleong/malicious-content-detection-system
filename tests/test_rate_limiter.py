@@ -16,7 +16,7 @@ def test_rate_limiter_basic() -> None:
 
 
 def test_rate_limiter_window() -> None:
-    # 2 requests per 0.1 second
+    # 2 requests per 1 second
     limiter = RateLimiter(max_requests=2, window_seconds=1)
     client_id = "test_client"
 
@@ -24,8 +24,8 @@ def test_rate_limiter_window() -> None:
     assert limiter.is_allowed(client_id) is True
     assert limiter.is_allowed(client_id) is False
 
-    # Wait for window to pass
-    time.sleep(0.15)
+    # Wait for window to pass (1 second + buffer)
+    time.sleep(1.1)
 
     # Should be allowed again
     assert limiter.is_allowed(client_id) is True
@@ -39,7 +39,8 @@ def test_rate_limiter_cleanup() -> None:
     limiter.record_attempt(client_id)
     assert len(limiter.requests[client_id]) == 1
 
-    time.sleep(0.15)
+    # Wait for window to pass (1 second + buffer)
+    time.sleep(1.1)
 
     # Calling is_allowed triggers cleanup
     limiter.is_allowed(client_id)
