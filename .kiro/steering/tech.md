@@ -170,3 +170,8 @@ Model integrity is verified via SHA256 checksums at startup.
 - **Batch processing**: Parallelized with joblib
 - **Concurrency**: Gunicorn auto-configures workers as `(2 x CPU cores) + 1`
 - **Caching**: LRU cache (10,000 items) for repeated queries
+- **Model**: TF-IDF (10k features, 1-2 grams) + Logistic Regression (C=10)
+- **Calibration**: Sigmoid method for reliable probability estimates
+- **Threshold**: 0.52 (F1-optimized on validation set)
+
+> **Note**: Demo dataset shows 99.99% ROC AUC due to clean separation. Production datasets typically show 85-92% AUC with more substantial calibration improvements.

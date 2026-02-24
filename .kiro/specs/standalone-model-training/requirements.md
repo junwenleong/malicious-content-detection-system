@@ -10,8 +10,8 @@ This document specifies requirements for extracting the Jupyter notebook trainin
 - **Model_Artifacts**: The output files (.pkl) containing the trained model and configuration
 - **Dataset**: The HuggingFace dataset (guychuk/benign-malicious-prompt-classification)
 - **Pipeline**: The complete sequence of training operations from data loading to model saving
-- **Calibrated_Model**: The logistic regression model with isotonic calibration applied
-- **Threshold**: The optimal decision boundary (0.54) determined via F1 score optimization
+- **Calibrated_Model**: The logistic regression model with sigmoid calibration applied (more stable than isotonic for the demo's 20% sample size)
+- **Threshold**: The optimal decision boundary (0.52) determined via F1 score optimization on the demo dataset. **Note**: This value is specific to the exceptionally clean public dataset and should be re-evaluated for production use.
 - **GridSearchCV**: Scikit-learn's hyperparameter tuning mechanism
 - **TF-IDF**: Term Frequency-Inverse Document Frequency vectorization method
 
@@ -59,7 +59,7 @@ This document specifies requirements for extracting the Jupyter notebook trainin
 
 #### Acceptance Criteria
 
-1. THE Training_Script SHALL apply isotonic calibration using CalibratedClassifierCV
+1. THE Training_Script SHALL apply sigmoid calibration using CalibratedClassifierCV (isotonic can be unstable with smaller sample sizes)
 2. THE Training_Script SHALL use 5-fold cross-validation during calibration
 3. THE Training_Script SHALL fit the Calibrated_Model on the training set
 4. THE Training_Script SHALL generate calibrated probabilities for the validation set

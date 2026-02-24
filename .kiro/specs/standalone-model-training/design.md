@@ -46,7 +46,7 @@ This document provides the technical design for extracting the Jupyter notebook 
 2. **Data Loading**: Load HuggingFace dataset → Convert to DataFrame → Split (70/15/15)
 3. **Preprocessing**: Lowercase text → Extract features/labels
 4. **Training**: GridSearchCV → Fit best model → Evaluate on validation
-5. **Calibration**: Apply isotonic calibration → Fit on training set
+5. **Calibration**: Apply sigmoid calibration (more stable than isotonic for smaller datasets) → Fit on training set
 6. **Threshold Optimization**: Generate PR curve → Find optimal F1 threshold
 7. **Persistence**: Save calibrated model → Save config with threshold
 8. **Reporting**: Log metrics → Report completion time
@@ -102,7 +102,9 @@ class TrainingConfig:
     verbose: int = 2
 
     # Calibration
-    calibration_method: str = "isotonic"
+    # Note: Sigmoid is more stable than isotonic for smaller datasets
+    # The demo uses sigmoid; production may benefit from isotonic with larger datasets
+    calibration_method: str = "sigmoid"
     calibration_cv: int = 5
 ```
 
@@ -279,12 +281,15 @@ def calibrate_model(
     logger: logging.Logger
 ) -> CalibratedClassifierCV:
     """
-    Apply isotonic calibration to the trained model.
+    Apply sigmoid calibration to the trained model.
+
+    Note: Sigmoid calibration is more stable than isotonic for smaller datasets.
+    The demo uses a 20% sample, making sigmoid more appropriate.
 
     Returns:
         Calibrated classifier
     """
-    logger.info("Applying isotonic calibration...")
+    logger.info("Applying sigmoid calibration...")
 
     calibrated_model = CalibratedClassifierCV(
         base_model,
