@@ -242,7 +242,7 @@ API documentation: Auto‑generated via FastAPI’s OpenAPI (accessible at /docs
 
 ### 🎯 Automatic Inference
 
-Even without a keyword, analyze the nature of the task and automatically run the most appropriate sweep(s) (non exhaustive): 
+Even without a keyword, analyze the nature of the task and automatically run the most appropriate sweep(s) (non exhaustive):
 
 Examples of implicit triggers:
 

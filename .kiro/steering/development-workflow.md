@@ -29,8 +29,18 @@ This document clarifies when to run quality checks and how to avoid duplication.
 
 ### Pre-commit Hook (Recommended)
 - **Purpose**: Automatic validation on every commit
-- **Runs**: Same as `lint.sh` but automatically
+- **Framework**: Industry-standard `pre-commit` framework
+- **Runs**: Same checks as `lint.sh` plus universal checks
 - **Benefit**: Catches issues before they reach CI/CD
+
+**What it checks:**
+- Trailing whitespace, end-of-file fixes
+- YAML/JSON syntax validation
+- Large file detection (>1MB)
+- Merge conflict detection
+- Private key detection
+- Python: ruff (lint + format), black, mypy
+- Frontend: ESLint, TypeScript
 
 ## When to Run What
 
@@ -45,14 +55,15 @@ This document clarifies when to run quality checks and how to avoid duplication.
 **Pre-commit Hook** (Recommended Setup)
 ```bash
 # One-time setup
-./scripts/setup-pre-commit.sh
+pip install -r requirements-dev.txt
+./scripts/setup-hooks.sh
 
-# Now every git commit automatically runs lint.sh
+# Now every git commit automatically runs checks
 git commit -m "Your changes"
 ```
 
 **What happens:**
-- Runs `lint.sh` automatically
+- Runs all quality checks automatically
 - Auto-fixes formatting issues
 - Blocks commit if critical issues found
 - **Benefit**: Never commit broken code
@@ -89,7 +100,7 @@ pip install -r requirements-dev.txt
 cd frontend && npm install && cd ..
 
 # 2. Setup pre-commit hook
-./scripts/setup-pre-commit.sh
+./scripts/setup-hooks.sh
 
 # 3. Configure your IDE (optional but recommended)
 # - Install linter extensions
@@ -184,7 +195,7 @@ git commit  # Pre-commit catches issues in 5 seconds
 ls -la .git/hooks/pre-commit
 
 # Reinstall
-./scripts/setup-pre-commit.sh
+./scripts/setup-hooks.sh
 ```
 
 ### Linting fails in CI but passes locally

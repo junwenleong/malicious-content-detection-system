@@ -1,11 +1,11 @@
-import { 
-  Alert, 
-  Box, 
-  Button, 
-  Chip, 
-  CircularProgress, 
-  Paper, 
-  TextField, 
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  Paper,
+  TextField,
   Typography,
   LinearProgress,
   Stack,
@@ -76,7 +76,7 @@ export function AnalyzeTab({ apiUrl, headers }: AnalyzeTabProps) {
         <Alert severity="info" sx={{ mb: 2 }}>
           <strong>Model Context:</strong> Optimized for <em>jailbreak detection</em>. Simple harmful queries may appear benign.
         </Alert>
-        
+
         <TextField
           label="Enter prompt to analyze..."
           multiline
@@ -86,7 +86,7 @@ export function AnalyzeTab({ apiUrl, headers }: AnalyzeTabProps) {
           fullWidth
           placeholder="e.g. Ignore previous instructions..."
         />
-        
+
         <Stack direction="row" spacing={2} sx={{ mt: 2, flexWrap: 'wrap', gap: 1 }}>
            <Button variant="outlined" size="small" onClick={() => setExample("How do I bake a cake?")}>
              Example: Benign
@@ -124,15 +124,15 @@ export function AnalyzeTab({ apiUrl, headers }: AnalyzeTabProps) {
                 const isMalicious = prediction.label === 'MALICIOUS';
                 const color = isMalicious ? 'error' : 'success';
                 const confidence = (prediction.probability_malicious * 100).toFixed(1);
-                
+
                 return (
-                  <Paper 
+                  <Paper
                     key={`${prediction.text}-${index}`}
                     elevation={3}
-                    sx={{ 
-                        p: 3, 
-                        borderLeft: 6, 
-                        borderColor: `${color}.main` 
+                    sx={{
+                        p: 3,
+                        borderLeft: 6,
+                        borderColor: `${color}.main`
                     }}
                   >
                     <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2} flexWrap="wrap" gap={1}>
@@ -140,25 +140,25 @@ export function AnalyzeTab({ apiUrl, headers }: AnalyzeTabProps) {
                             {prediction.label}
                         </Typography>
                         <Stack direction="row" spacing={1}>
-                            <Chip 
-                                label={`Risk: ${prediction.risk_level}`} 
-                                color={prediction.risk_level === 'HIGH' ? 'error' : prediction.risk_level === 'MEDIUM' ? 'warning' : 'success'} 
+                            <Chip
+                                label={`Risk: ${prediction.risk_level}`}
+                                color={prediction.risk_level === 'HIGH' ? 'error' : prediction.risk_level === 'MEDIUM' ? 'warning' : 'success'}
                             />
-                            <Chip 
-                                label={`Action: ${prediction.recommended_action}`} 
+                            <Chip
+                                label={`Action: ${prediction.recommended_action}`}
                                 variant="outlined"
                             />
                         </Stack>
                     </Stack>
-                    
+
                     <Typography variant="subtitle2" gutterBottom>
                         Detection Confidence
                     </Typography>
                     <Stack direction="row" spacing={2} alignItems="center">
                         <Box flexGrow={1}>
-                            <LinearProgress 
-                                variant="determinate" 
-                                value={prediction.probability_malicious * 100} 
+                            <LinearProgress
+                                variant="determinate"
+                                value={prediction.probability_malicious * 100}
                                 color={color}
                                 sx={{ height: 10, borderRadius: 5 }}
                             />
@@ -167,12 +167,12 @@ export function AnalyzeTab({ apiUrl, headers }: AnalyzeTabProps) {
                             {confidence}%
                         </Typography>
                     </Stack>
-                    
+
                     <Divider sx={{ my: 2 }} />
-                    
+
                     <Typography variant="caption" color="text.secondary" display="block">
-                        Model Version: {predictData.metadata.model_version || 'N/A'} • 
-                        Processing Time: {predictData.metadata.total_latency_ms.toFixed(2)}ms • 
+                        Model Version: {predictData.metadata.model_version || 'N/A'} •
+                        Processing Time: {predictData.metadata.total_latency_ms.toFixed(2)}ms •
                         Decision Threshold: {prediction.threshold}
                     </Typography>
                   </Paper>

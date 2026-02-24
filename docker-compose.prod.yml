@@ -9,7 +9,7 @@ services:
       ALLOWED_ORIGINS: '["https://internal-tool.corp.com"]'
       WORKERS: "4" # Fixed worker count or use auto
       # Secrets must be provided by the environment/orchestrator
-      # API_KEY: ... 
+      # API_KEY: ...
     deploy:
       resources:
         limits:

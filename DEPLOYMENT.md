@@ -8,7 +8,7 @@ This document outlines the DevOps audit findings and provides a guide for produc
 
 ### ✅ Strengths
 - **Immutable Infrastructure**: The backend image includes all code and dependencies; no code is mounted at runtime in production.
-- **Observability**: 
+- **Observability**:
   - Structured JSON logging is enabled by default.
   - Prometheus metrics are exposed at `/metrics`.
   - Health checks are implemented at `/health`.

@@ -15,6 +15,7 @@
 ### Development Dependencies
 - **Testing**: pytest 8.0.0+, pytest-cov 4.1.0+
 - **Linting**: ruff 0.3.0+, mypy 1.8.0+, black 24.0.0+
+- **Pre-commit**: pre-commit 3.5.0+ (industry-standard hook framework)
 - **Analysis**: jupyter, pandas, matplotlib, seaborn
 
 ## Frontend Stack
@@ -36,6 +37,25 @@
 - **Orchestration**: Docker Compose (development & production variants)
 
 ## Common Commands
+
+### Pre-commit Hooks
+```bash
+# One-time setup (installs hooks)
+./scripts/setup-hooks.sh
+
+# Run all hooks manually
+pre-commit run --all-files
+
+# Run specific hook
+pre-commit run ruff --all-files
+pre-commit run mypy --all-files
+
+# Update hooks to latest versions
+pre-commit autoupdate
+
+# Bypass hooks (emergency only)
+git commit --no-verify -m "Emergency fix"
+```
 
 ### Backend Development
 ```bash

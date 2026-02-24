@@ -38,7 +38,7 @@ export function ConnectionPanel({
             {expanded ? 'Hide' : 'Configure'}
         </Button>
       </Box>
-      
+
       <Collapse in={expanded}>
         <Box display="grid" gap={2} gridTemplateColumns={{ xs: '1fr', md: '2fr 1fr' }}>
             <TextField

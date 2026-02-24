@@ -136,4 +136,3 @@ This document specifies requirements for extracting the Jupyter notebook trainin
 3. THE Training_Script SHALL log the random seed value used for each training run
 4. THE Training_Script SHALL produce identical Model_Artifacts when run with the same seed and data
 5. THE Training_Script SHALL document the Python and library versions required for reproducibility
-
