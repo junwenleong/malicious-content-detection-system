@@ -387,34 +387,93 @@ See [.github/workflows/README.md](.github/workflows/README.md) for details.
 
 ---
 
-##### Development
+## Development Workflow
 
-### Linting
-**PowerShell**
-```powershell
-.\lint.ps1
+### Initial Setup (One-Time)
+
+1. **Install dependencies:**
+   ```bash
+   # Backend
+   pip install -r requirements-dev.txt
+   
+   # Frontend
+   cd frontend && npm install && cd ..
+   ```
+
+2. **Setup pre-commit hook (Recommended):**
+   ```bash
+   ./scripts/setup-pre-commit.sh
+   ```
+   
+   This installs a Git hook that automatically runs linting checks before every commit, catching issues early.
+
+3. **Configure your IDE (Optional but Recommended):**
+   - Install Python, Ruff, and ESLint extensions
+   - Enable format-on-save for automatic code formatting
+
+### Daily Development
+
+With the pre-commit hook installed, your workflow is simple:
+
+```bash
+# 1. Write code
+# 2. Commit (hook runs automatically)
+git add .
+git commit -m "Add feature X"
+
+# 3. Push
+git push
 ```
 
-**WSL / Bash**
+The pre-commit hook will:
+- Auto-fix formatting issues
+- Run linting checks
+- Block commits if critical issues are found
+
+### Manual Linting (When Needed)
+
+Run linting manually only if:
+- You bypassed pre-commit with `--no-verify`
+- You're debugging linting issues
+- Pre-commit hook isn't installed yet
+
+**macOS / Linux:**
 ```bash
 ./lint.sh
 ```
 
-### Backend
+**PowerShell:**
 ```bash
-pip install -r requirements-dev.txt
-uvicorn api.app:app --reload
-```
+.\lint.ps1
 ```
 
-### Frontend
+### Running Services Locally
+
+**Backend:**
+```bash
+uvicorn api.app:app --reload
+```
+
+**Frontend:**
 ```bash
 cd frontend
-npm install
 npm run dev
 ```
 
-### Docker
+**Docker (Both Services):**
 ```bash
 docker compose up --build
 ```
+
+### Check Execution Matrix
+
+| Check Type | When | Duration | Auto-Fix | Blocks Commit |
+|------------|------|----------|----------|---------------|
+| IDE Linting | On save | <1s | ✓ | ✗ |
+| Pre-commit Hook | On commit | 5-10s | ✓ | ✓ |
+| Manual lint.sh | On demand | 5-10s | ✓ | ✗ |
+| CI/CD Pipeline | On push/PR | 2-5min | ✗ | ✓ |
+
+**Best Practice:** Install the pre-commit hook once, then just write code and commit normally. The hook catches issues automatically before they reach CI/CD.
+
+For detailed workflow documentation, see [.kiro/steering/development-workflow.md](.kiro/steering/development-workflow.md).
