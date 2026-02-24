@@ -1,3 +1,4 @@
+from typing import Iterator
 import hmac
 import hashlib
 import time
@@ -11,7 +12,7 @@ import src.config
 
 
 @pytest.fixture
-def enable_hmac():
+def enable_hmac() -> Iterator[None]:
     old_enabled = src.config.settings.hmac_enabled
     old_secret = src.config.settings.hmac_secret
     old_keys = src.config.settings.api_keys
@@ -27,7 +28,7 @@ def enable_hmac():
     src.config.settings.api_keys = old_keys
 
 
-def test_hmac_enforcement(enable_hmac):
+def test_hmac_enforcement(enable_hmac: None) -> None:
     with TestClient(app) as client:
         # 1. Missing Header
         resp = client.post(

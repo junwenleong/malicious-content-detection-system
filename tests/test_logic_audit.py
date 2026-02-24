@@ -1,14 +1,16 @@
 import threading
-from src.utils.circuit_breaker import CircuitBreaker
-from src.inference.predictor import Predictor
+from typing import Any
 from unittest.mock import MagicMock, patch
 
+from src.inference.predictor import Predictor
+from src.utils.circuit_breaker import CircuitBreaker
 
-def test_circuit_breaker_thread_safety():
+
+def test_circuit_breaker_thread_safety() -> None:
     # ... (keep existing)
     breaker = CircuitBreaker(failure_threshold=5, cooldown_seconds=1)
 
-    def simulate_failures():
+    def simulate_failures() -> None:
         for _ in range(10):
             breaker.record_failure()
 
@@ -24,7 +26,7 @@ def test_circuit_breaker_thread_safety():
 
 
 @patch("src.utils.circuit_breaker.time")
-def test_circuit_breaker_recovery(mock_time):
+def test_circuit_breaker_recovery(mock_time: Any) -> None:
     mock_time.monotonic.return_value = 100.0
     # cooldown_seconds is min 0.1
     breaker = CircuitBreaker(failure_threshold=1, cooldown_seconds=0.1)
@@ -46,13 +48,13 @@ def test_circuit_breaker_recovery(mock_time):
     assert breaker.state == "closed"
 
 
-def test_predictor_empty_input():
+def test_predictor_empty_input() -> None:
     # Create predictor with mocked internals
     predictor = Predictor.__new__(Predictor)
     predictor.model = MagicMock()
     predictor.config = {"positive_class": 1, "optimal_threshold": 0.5}
     predictor.pos_index = 1
-    predictor._cache = {}
+    predictor._cache: dict[str, tuple[int, float]] = {}
     predictor._cache_size = 10000
     predictor._lock = __import__("threading").Lock()
 

@@ -1,3 +1,4 @@
+from typing import Any, Iterator
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import MagicMock, AsyncMock
@@ -10,7 +11,7 @@ client = TestClient(app)
 
 
 @pytest.fixture
-def mock_app_state():
+def mock_app_state() -> Iterator[tuple[MagicMock, MagicMock]]:
     # Save original state
     original_predictor = getattr(app.state, "predictor", None)
     original_breaker = getattr(app.state, "breaker", None)
@@ -60,7 +61,7 @@ def mock_app_state():
     app.state.metrics = original_metrics
 
 
-def test_predict_endpoint_success(mock_app_state):
+def test_predict_endpoint_success(mock_app_state: Any) -> None:
     mock_predictor, _ = mock_app_state
 
     # Mock return values for apredict
@@ -95,7 +96,7 @@ def test_predict_endpoint_success(mock_app_state):
         app.dependency_overrides = {}
 
 
-def test_circuit_breaker_open(mock_app_state):
+def test_circuit_breaker_open(mock_app_state: Any) -> None:
     _, mock_breaker = mock_app_state
     mock_breaker.allow_request.return_value = False
 
@@ -114,7 +115,7 @@ def test_circuit_breaker_open(mock_app_state):
         app.dependency_overrides = {}
 
 
-def test_predict_endpoint_validation_error(mock_app_state):
+def test_predict_endpoint_validation_error(mock_app_state: Any) -> None:
     # Test empty text list
     api_key = settings.api_keys[0] if settings.api_keys else "test-key"
     if not settings.api_keys:
@@ -130,7 +131,7 @@ def test_predict_endpoint_validation_error(mock_app_state):
         app.dependency_overrides = {}
 
 
-def test_predict_endpoint_model_error(mock_app_state):
+def test_predict_endpoint_model_error(mock_app_state: Any) -> None:
     mock_predictor, mock_breaker = mock_app_state
     mock_predictor.apredict.side_effect = Exception("Model failed")
 

@@ -2,7 +2,7 @@ import time
 from src.utils.rate_limiter import RateLimiter
 
 
-def test_rate_limiter_basic():
+def test_rate_limiter_basic() -> None:
     # 5 requests per 1 second
     limiter = RateLimiter(max_requests=5, window_seconds=1)
     client_id = "test_client"
@@ -15,9 +15,9 @@ def test_rate_limiter_basic():
     assert limiter.is_allowed(client_id) is False
 
 
-def test_rate_limiter_window():
+def test_rate_limiter_window() -> None:
     # 2 requests per 0.1 second
-    limiter = RateLimiter(max_requests=2, window_seconds=0.1)
+    limiter = RateLimiter(max_requests=2, window_seconds=1)
     client_id = "test_client"
 
     assert limiter.is_allowed(client_id) is True
@@ -31,9 +31,9 @@ def test_rate_limiter_window():
     assert limiter.is_allowed(client_id) is True
 
 
-def test_rate_limiter_cleanup():
+def test_rate_limiter_cleanup() -> None:
     # Verify old timestamps are removed
-    limiter = RateLimiter(max_requests=10, window_seconds=0.1)
+    limiter = RateLimiter(max_requests=10, window_seconds=1)
     client_id = "test_client"
 
     limiter.record_attempt(client_id)
@@ -47,7 +47,7 @@ def test_rate_limiter_cleanup():
     assert len(limiter.requests[client_id]) == 1
 
 
-def test_is_blocked_vs_allowed():
+def test_is_blocked_vs_allowed() -> None:
     limiter = RateLimiter(max_requests=1, window_seconds=1)
     client_id = "test_client"
 
@@ -64,7 +64,7 @@ def test_is_blocked_vs_allowed():
     assert limiter.is_allowed(client_id) is False
 
 
-def test_rate_limiter_different_clients():
+def test_rate_limiter_different_clients() -> None:
     """Ensure rate limiting is per-client, not global."""
     limiter = RateLimiter(max_requests=1, window_seconds=1)
 
