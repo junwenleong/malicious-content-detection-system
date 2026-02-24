@@ -142,8 +142,14 @@ def load_and_split_data(
             config.sample_size,
             100 * config.sample_size / len(df),
         )
-        df = df.sample(
-            n=config.sample_size, random_state=config.random_state, stratify=df["label"]
+        # Use stratified sampling via sklearn
+        from sklearn.model_selection import train_test_split
+
+        df, _ = train_test_split(
+            df,
+            train_size=config.sample_size,
+            random_state=config.random_state,
+            stratify=df["label"],
         )
         logger.info("Subsampled to %d samples", len(df))
 
