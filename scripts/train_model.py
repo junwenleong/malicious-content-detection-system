@@ -296,7 +296,7 @@ def evaluate_raw_model(
     logger.info("Validation ROC AUC (raw model): %.4f", roc_auc_raw)
     logger.info("Validation evaluation took: %.2f seconds", elapsed)
 
-    return probs_val_raw  # type: ignore[return-value]
+    return probs_val_raw
 
 
 # ---------------------------------------------------------------------------
