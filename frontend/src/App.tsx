@@ -16,6 +16,7 @@ import { AnalyzeTab } from './components/AnalyzeTab'
 import { BatchTab } from './components/BatchTab'
 
 const defaultApiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+const defaultApiKey = 'dev-secret-key-123'
 
 function App() {
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)')
@@ -31,7 +32,7 @@ function App() {
 
   const [tab, setTab] = useState(0)
   const [apiUrl, setApiUrl] = useState(() => localStorage.getItem('api_url') ?? defaultApiUrl)
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('api_key') ?? '')
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('api_key') ?? defaultApiKey)
   const [healthStatus, setHealthStatus] = useState<'unknown' | 'ok' | 'error'>('unknown')
   const [healthMessage, setHealthMessage] = useState('')
 
