@@ -91,14 +91,9 @@ Thumbs.db
 .idea/
 .trae/
 .traerules
+.kiro/
 *.swp
 *.swo
-
-# Kiro (allow steering docs, ignore everything else)
-.kiro/*
-!.kiro/steering/
-.kiro/steering/*
-!.kiro/steering/*.md
 
 # Pre-commit
 .pre-commit/

@@ -45,7 +45,7 @@ For production deployment, see [DEPLOYMENT.md](DEPLOYMENT.md).
 Before running the system, set up your environment:
 
 1. Copy the example environment file:
-   ```powershell
+   ```bash
    # Backend
    cp .env.development.example .env
 
@@ -56,16 +56,16 @@ Before running the system, set up your environment:
    > **Note:** The default API Key is `dev-secret-key-123`. You must enter this in the Frontend Connection Panel to authenticate.
 
 2. Validate your configuration:
-   ```powershell
+   ```bash
    python validate_env.py
    ```
 
 ### Running the System
 To start both backend and frontend services:
 
-**PowerShell**
-```powershell
-.\run.ps1
+**Bash (macOS/Linux)**
+```bash
+./run.sh
 ```
 
 - **Backend:** http://localhost:8000
@@ -74,9 +74,9 @@ To start both backend and frontend services:
 ### Testing the API
 To run the integration tests against a running backend:
 
-**PowerShell**
-```powershell
-.\test_api.ps1
+**Testing the API**
+```bash
+pytest tests/test_api.py
 ```
 
 ## Quick Start (macOS / Linux)
@@ -219,9 +219,9 @@ This system uses ML to detect malicious content **before** it reaches downstream
 **This public dataset is exceptionally clean and well-separated**, which affects the observed metrics and calibration behavior:
 
 **Why the metrics are strong:**
-1. **Good separation**: The dataset has clear boundaries between benign and malicious examples, resulting in 98.82% ROC AUC
-2. **Improved calibration**: The raw model calibration error (0.0055) is reduced to 0.0025 through sigmoid calibration
-3. **Sigmoid calibration**: Improves probability reliability for better decision-making
+1. **Good separation**: The dataset has clear boundaries between benign and malicious examples, resulting in 98.81% ROC AUC
+2. **Improved calibration**: The raw model calibration error (0.0055) is reduced to 0.0025 through isotonic calibration (55% improvement)
+3. **Isotonic calibration**: More flexible than sigmoid, captures non-monotonic relationships for better probability reliability
 
 **What this means:**
 - The **methodology** (TF-IDF → Logistic Regression → Calibration → Threshold optimization) is sound and production-ready
@@ -275,7 +275,7 @@ This system uses ML to detect malicious content **before** it reaches downstream
          ▼
 ┌─────────────────────────────┐
 │  Threshold Decision         │
-│  (0.52 - optimized F1)      │
+│  (0.536 - F1-optimized)     │
 └────────┬────────────────────┘
          │
          ▼
@@ -285,13 +285,17 @@ This system uses ML to detect malicious content **before** it reaches downstream
 **Architecture decisions:**
 1. **TF-IDF over embeddings**: Faster inference, interpretable features, sufficient for this task
 2. **Logistic regression**: Baseline with excellent speed/accuracy trade-off
-3. **Sigmoid calibration**: Ensures probabilities are reliable for threshold-based decisions
-4. **0.52 threshold**: Selected via validation set PR-curve analysis (F1 optimization)
+3. **Isotonic calibration**: More flexible than sigmoid, captures non-monotonic relationships for reliable probabilities
+4. **0.536 threshold**: Selected via validation set F1 optimization
 
 **Demo Dataset Performance:**
-- ROC AUC: 0.9882 (clean public dataset)
-- Optimal Threshold: 0.536 (F1-optimized on validation set via PR curve analysis)
-- Calibration error: 0.0055 → 0.0025 (improved calibration)
+- ROC AUC: 0.9881 (test set, calibrated model)
+- Optimal Threshold: 0.536 (F1-optimized on validation set)
+- Test Set Performance (at threshold 0.536):
+  - Precision: 0.98 (malicious), 0.94 (benign)
+  - Recall: 0.93 (malicious), 0.98 (benign)
+  - F1-score: 0.96 (both classes), Accuracy: 0.96
+- Calibration: Isotonic method, error 0.0055 → 0.0025 (55% improvement)
 - Dataset: 39,234 samples (perfect 50/50 balance): 27,463 train / 5,885 val / 5,886 test
 
 > **Production Note**: The demo dataset is unusually clean, resulting in near-perfect metrics. Real-world enterprise datasets with noisier content typically show 85-92% AUC with more substantial calibration improvements (error reduction from ~0.18 to ~0.04).
@@ -492,9 +496,9 @@ Run linting manually only if:
 ./lint.sh
 ```
 
-**PowerShell:**
+**Run linting checks:**
 ```bash
-.\lint.ps1
+./lint.sh
 ```
 
 ### Running Services Locally
