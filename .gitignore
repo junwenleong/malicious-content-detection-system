@@ -7,8 +7,12 @@ __pycache__/
 .venv/
 venv/
 ENV/
+env/
 .pytest_cache/
 .mypy_cache/
+*.egg-info/
+dist/
+build/
 
 # Environment files
 .env
@@ -36,6 +40,8 @@ data/processed/*
 *.joblib
 *.h5
 *.pt
+*.pth
+*.onnx
 
 # Allow committed demo model artifacts
 !models/malicious_content_detector_calibrated.pkl
@@ -51,15 +57,22 @@ test_batch_results.csv
 .playwright-cli/
 test-results/
 frontend/test-results/
+playwright-report/
 *.png
+*.jpg
+*.jpeg
 !docs/**/*.png
+!docs/**/*.jpg
 !frontend/public/**/*.png
+!frontend/public/**/*.jpg
 
 # Build caches
 .ruff_cache/
+.pre-commit-cache/
 
 # Training logs
 training.log
+*.log
 mlruns/
 
 # Docker
@@ -71,16 +84,16 @@ Thumbs.db
 *.bak
 *.tmp
 *.temp
+*~
 
 # IDE
 .vscode/
 .idea/
 .trae/
+.traerules
 .kiro/
 *.swp
 *.swo
-*~
 
 # Pre-commit
-.pre-commit-cache/
 .pre-commit/
