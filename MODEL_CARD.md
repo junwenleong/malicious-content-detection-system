@@ -14,19 +14,19 @@
 ## Performance Metrics
 
 ### Demo Dataset Performance
-- **ROC AUC**: 0.9999 (near-perfect on public dataset)
-- **Optimal Threshold**: 0.52 (F1-optimized)
-- **Calibration**: Sigmoid method, error reduced from 0.0012 to 0.0004
-- **Dataset**: 20% sample (92.9k examples): 65k train / 13.9k val / 13.9k test
+- **ROC AUC**: 0.9882 (clean public dataset)
+- **Optimal Threshold**: 0.536 (F1-optimized via PR curve analysis)
+- **Calibration**: Sigmoid method, error 0.0055 → 0.0025 (improved calibration)
+- **Dataset**: 39,234 samples (perfect 50/50 balance): 27,463 train / 5,885 val / 5,886 test
 - **Latency**: ~4ms p50 for single predictions (local test)
 - **Throughput**: Scales with CPU cores; lightweight TF-IDF + Logistic Regression
 
 ### Important Context
-> **The public demo dataset is exceptionally clean**, resulting in near-perfect metrics (99.99% AUC). This demonstrates the calibration methodology but not the magnitude of improvement typical in production environments.
+> **The public demo dataset is clean and well-balanced**, resulting in strong metrics (98.82% AUC). This demonstrates the calibration methodology and system architecture.
 >
 > **Production comparison**: Real-world enterprise datasets with noisier, more ambiguous content typically show:
-> - ROC AUC: 85-92% (vs 99.99% demo)
-> - Calibration error reduction: 0.18 → 0.04 (vs 0.0012 → 0.0004 demo)
+> - ROC AUC: 85-92% (vs 98.82% demo)
+> - Calibration error reduction: 0.18 → 0.04 (vs 0.0055 → 0.0025 demo)
 > - More substantial impact from calibration on decision reliability
 >
 > The system architecture and calibration approach remain valid; evaluate on your organization's data and update this card before production deployment.

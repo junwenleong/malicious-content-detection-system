@@ -18,11 +18,11 @@ class Settings(BaseSettings):
     )
     # Checksums for integrity validation
     model_sha256: str = Field(
-        default="a59502f888675f7e90e12a3d240cb4922f63c92fece5eb074580fc9270b24444",
+        default="2634be2a3377882d8d42e1e4f03e28e588af060f5c0dd7ffeac4366eccedb562",
         description="Expected SHA256 checksum of the model file",
     )
     config_sha256: str = Field(
-        default="82f0699ae046fbeab980142262c298a630764ff3c2666099b8a438be5f2863c7",
+        default="1ffb27b0ec53b269a9282e90b2d3d164c0f9b367d9291db28bd176a315fd8a3f",
         description="Expected SHA256 checksum of the config file",
     )
 
