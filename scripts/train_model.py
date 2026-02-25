@@ -27,7 +27,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import psutil
-from datasets import load_dataset
+import kagglehub
+from kagglehub import KaggleDatasetAdapter
 from sklearn.calibration import CalibratedClassifierCV, calibration_curve
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
@@ -120,19 +121,24 @@ def setup_logging() -> None:
 def load_and_split_data(
     config: TrainingConfig,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Load HuggingFace dataset and perform stratified 70/15/15 split."""
+    """Load Kaggle MPDD dataset and perform stratified 70/15/15 split."""
     logger.info(
-        "Loading dataset from HuggingFace (guychuk/benign-malicious-prompt-classification)..."
+        "Loading dataset from Kaggle (mohammedaminejebbar/malicious-prompt-detection-dataset-mpdd)..."
     )
 
     try:
-        dataset = load_dataset("guychuk/benign-malicious-prompt-classification")
-        ds = dataset["train"]
-        df = ds.to_pandas()
+        df = kagglehub.load_dataset(
+            KaggleDatasetAdapter.PANDAS,
+            "mohammedaminejebbar/malicious-prompt-detection-dataset-mpdd",
+            "MPDD.csv",
+        )
+        # Rename columns to match expected format
+        df = df.rename(columns={"prompt": "prompt", "isMalicious": "label"})
     except Exception as e:
         raise RuntimeError(
             f"Failed to load dataset: {e}\n"
-            "Check your internet connection and HuggingFace access."
+            "Check your internet connection and Kaggle access.\n"
+            "You may need to authenticate with Kaggle: https://github.com/Kaggle/kagglehub"
         ) from e
 
     logger.info("Loaded %d samples", len(df))

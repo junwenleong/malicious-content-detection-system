@@ -37,7 +37,7 @@
 - **Classifier**: Logistic Regression (C=10, lbfgs solver)
 - **Calibration**: Sigmoid calibration for reliable probabilities
 - **Decision Threshold**: 0.52 (optimized for F1 score)
-- **Performance**: ROC AUC 0.9999 on demo dataset (20% sample, 92.9k examples)
+- **Performance**: ROC AUC 0.9999 on MPDD dataset (39,234 examples, 50/50 balanced)
 
 > **Demo Dataset Note**: The public dataset used here is exceptionally clean and well-separated, resulting in near-perfect metrics (99.99% AUC). This demonstrates the methodology but not the magnitude of improvement typical in production. Real-world enterprise datasets with noisier, more ambiguous content typically show 85-92% AUC, with calibration reducing error from ~0.18 to ~0.04.
 
