@@ -1,6 +1,5 @@
 import time
 from typing import Any, Dict
-
 from fastapi import APIRouter, Request, Response, status
 from src.config import settings
 from src.inference.predictor import Predictor

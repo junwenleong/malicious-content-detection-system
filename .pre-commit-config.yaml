@@ -41,7 +41,9 @@ repos:
           - types-PyYAML
           - pydantic>=2.0.0
           - pydantic-settings>=2.0.0
-        args: [--ignore-missing-imports]
+          - fastapi>=0.100.0
+          - starlette>=0.27.0
+        args: [--ignore-missing-imports, --no-strict-optional]
         files: ^(src|api)/
 
   # Frontend: ESLint

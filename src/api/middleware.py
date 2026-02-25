@@ -1,9 +1,8 @@
 import logging
 import time
 import json
-from typing import Callable, Awaitable
 from fastapi import Request
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
 from prometheus_client import Counter, Histogram
 
@@ -19,7 +18,7 @@ REQUEST_LATENCY = Histogram(
 
 class PrometheusMiddleware(BaseHTTPMiddleware):
     async def dispatch(
-        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+        self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         start_time = time.monotonic()
         status_code = 500
@@ -46,7 +45,7 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(
-        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+        self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         response = await call_next(request)
         response.headers["Strict-Transport-Security"] = (
@@ -65,7 +64,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 class AuditMiddleware(BaseHTTPMiddleware):
     async def dispatch(
-        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+        self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         client_ip = request.client.host if request.client else "unknown"
         path = request.url.path
