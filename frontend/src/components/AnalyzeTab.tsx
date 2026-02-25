@@ -173,7 +173,7 @@ export function AnalyzeTab({ apiUrl, headers }: AnalyzeTabProps) {
                     <Typography variant="caption" color="text.secondary" display="block">
                         Model Version: {predictData.metadata.model_version || 'N/A'} •
                         Processing Time: {predictData.metadata.total_latency_ms.toFixed(2)}ms •
-                        Decision Threshold: {prediction.threshold}
+                        Decision Threshold: {prediction.threshold.toFixed(3)}
                     </Typography>
                   </Paper>
                 )

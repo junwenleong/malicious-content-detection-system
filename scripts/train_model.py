@@ -72,9 +72,9 @@ class TrainingConfig:
     verbose: int = 1
 
     # Calibration
-    # Note: Sigmoid is more stable than isotonic for smaller datasets
-    # The demo uses a 20% sample, making sigmoid more appropriate
-    calibration_method: str = "sigmoid"
+    # Note: Isotonic calibration is more flexible and can capture non-monotonic relationships
+    # Use isotonic for larger datasets (>1000 samples per class)
+    calibration_method: str = "isotonic"
     calibration_cv: int = 5
 
     # Parameter grid (from notebook)
@@ -322,10 +322,10 @@ def calibrate_model(
     y_train: np.ndarray,
     config: TrainingConfig,
 ) -> CalibratedClassifierCV:
-    """Apply sigmoid calibration to the trained model.
+    """Apply isotonic calibration to the trained model.
 
-    Note: Sigmoid calibration is more stable than isotonic for smaller datasets.
-    The demo uses a 20% sample, making sigmoid more appropriate.
+    Note: Isotonic calibration is more flexible than sigmoid and can capture
+    non-monotonic relationships. Suitable for datasets with >1000 samples per class.
     """
     logger.info("=" * 70)
     logger.info("MODEL CALIBRATION")

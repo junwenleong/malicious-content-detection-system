@@ -10,7 +10,7 @@ services:
       # WARNING: Default key for development only. Override in production.
       API_KEY: "${API_KEY:-dev-secret-key-123}"
       # WARNING: Default threshold for development only. Override in production.
-      DECISION_THRESHOLD: "${DECISION_THRESHOLD:-0.52}"
+      DECISION_THRESHOLD: "${DECISION_THRESHOLD:-0.536}"
       RATE_LIMIT_MAX: "${RATE_LIMIT_MAX:-100}"
       BREAKER_ENABLED: "${BREAKER_ENABLED:-true}"
       WORKERS: "${WORKERS:-4}"
