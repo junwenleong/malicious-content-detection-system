@@ -8,6 +8,7 @@ __pycache__/
 venv/
 ENV/
 .pytest_cache/
+.mypy_cache/
 
 # Environment files
 .env
@@ -17,6 +18,12 @@ ENV/
 
 # Jupyter
 .ipynb_checkpoints/
+.jupyter/
+
+# Node / Frontend (root patterns)
+node_modules/
+dist/
+test-results/
 
 # Data
 data/raw/*
@@ -38,6 +45,22 @@ data/processed/*
 *.csv
 test_batch.csv
 predictions_output.csv
+test_batch_results.csv
+
+# Playwright test artifacts
+.playwright-cli/
+test-results/
+frontend/test-results/
+*.png
+!docs/**/*.png
+!frontend/public/**/*.png
+
+# Build caches
+.ruff_cache/
+
+# Training logs
+training.log
+mlruns/
 
 # Docker
 docker-compose.override.yml
@@ -45,13 +68,19 @@ docker-compose.override.yml
 # OS
 .DS_Store
 Thumbs.db
+*.bak
+*.tmp
+*.temp
 
 # IDE
 .vscode/
 .idea/
+.trae/
+.kiro/
 *.swp
 *.swo
 *~
 
 # Pre-commit
 .pre-commit-cache/
+.pre-commit/
