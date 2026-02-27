@@ -46,14 +46,19 @@ async def predict(
             headers={"Retry-After": str(settings.rate_limit_window)},
         )
 
+    # Defensive: Strip whitespace and validate non-empty
     texts = [text.strip() for text in request.texts]
-    if not texts:
-        # Should be caught by pydantic, but defensive programming
-        return PredictResponse(predictions=[], metadata={})
-    # Reject texts that are empty after stripping
+
+    # Edge case: All texts were whitespace-only
+    if not texts or all(not text for text in texts):
+        raise HTTPException(
+            status_code=400, detail="All texts are empty after trimming whitespace"
+        )
+
+    # Reject individual empty texts after stripping
     if any(not text for text in texts):
         raise HTTPException(
-            status_code=400, detail="Empty text not allowed after trimming"
+            status_code=400, detail="One or more texts are empty after trimming"
         )
 
     if len(texts) > settings.max_batch_items:

@@ -60,21 +60,28 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_security_settings(self) -> "Settings":
-        # 1. API Keys Validation
+        """Validate security configuration and enforce best practices.
+
+        This validator ensures:
+        1. API keys are properly configured
+        2. HMAC secrets meet minimum complexity requirements
+        3. Security settings are consistent
+
+        Returns:
+            Validated settings instance
+
+        Raises:
+            ValueError: If security requirements are not met
+        """
+        # 1. API Keys Validation - Merge legacy single key with keys list
         if self.api_key and self.api_key not in self.api_keys:
             self.api_keys.append(self.api_key)
 
-        # Enforce minimum complexity for secrets in production (implied by explicit check)
-        # We'll just warn/check generally for now to avoid breaking existing dev setups hard,
-        # but for HMAC it's critical.
+        # 2. HMAC Secret Validation - Enforce minimum complexity when enabled
         if self.hmac_enabled:
             if not self.hmac_secret:
                 raise ValueError("HMAC is enabled but hmac_secret is missing")
             if len(self.hmac_secret) < 32:
-                # In a real strict environment, raise ValueError.
-                # Here we might just want to ensure it's not trivial if we could log,
-                # but Pydantic validators are for strict validation.
-                # Let's enforce 32 chars for HMAC if enabled.
                 raise ValueError(
                     "HMAC secret must be at least 32 characters long for security"
                 )

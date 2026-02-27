@@ -71,11 +71,22 @@ async def batch_predict(
 
     # Create a wrapper that handles decoding properly
     # UploadFile.file is a SpooledTemporaryFile which is binary
-    text_stream = io.TextIOWrapper(file.file, encoding="utf-8")
+    try:
+        text_stream = io.TextIOWrapper(file.file, encoding="utf-8", errors="strict")
+    except UnicodeDecodeError as e:
+        raise HTTPException(
+            status_code=400, detail=f"Invalid UTF-8 encoding in file: {str(e)}"
+        )
 
     # Check header first without reading whole file
     # We read the first line to check headers, then seek back
-    first_line = text_stream.readline()
+    try:
+        first_line = text_stream.readline()
+    except UnicodeDecodeError as e:
+        raise HTTPException(
+            status_code=400, detail=f"Invalid UTF-8 encoding in file: {str(e)}"
+        )
+
     if not first_line:
         raise HTTPException(status_code=400, detail="Empty file")
 
@@ -100,45 +111,72 @@ async def batch_predict(
         batch_texts: list[str] = []
         chunk_size = settings.max_batch_items
 
-        for row in csv_reader:
-            if "text" in row:
-                batch_texts.append(row["text"])
-                total_rows += 1
+        try:
+            for row in csv_reader:
+                if "text" in row:
+                    batch_texts.append(row["text"])
+                    total_rows += 1
 
-            if len(batch_texts) >= chunk_size:
-                try:
-                    labels, probs, latency = await predictor.apredict(
-                        batch_texts, threshold
-                    )
-                except Exception as exc:
-                    if breaker:
-                        breaker.record_failure()
-                    metrics.record_error()
-                    logger.error(
-                        json.dumps(
-                            {
-                                "event": "batch_inference_error",
-                                "correlation_id": correlation_id,
-                                "error": str(exc)[:500],
-                                "rows_processed": total_rows,
-                            }
+                if len(batch_texts) >= chunk_size:
+                    try:
+                        labels, probs, latency = await predictor.apredict(
+                            batch_texts, threshold
                         )
-                    )
-                    yield f"ERROR,INFERENCE_FAILED,0,0,ERROR,ERROR,{settings.model_version},0\n"
-                    return
-                if breaker:
-                    breaker.record_success()
-                per_item_latency = latency / max(len(labels), 1)
+                    except Exception as exc:
+                        if breaker:
+                            breaker.record_failure()
+                        metrics.record_error()
+                        logger.error(
+                            json.dumps(
+                                {
+                                    "event": "batch_inference_error",
+                                    "correlation_id": correlation_id,
+                                    "error": str(exc)[:500],
+                                    "rows_processed": total_rows,
+                                }
+                            )
+                        )
+                        yield f"ERROR,INFERENCE_FAILED,0,0,ERROR,ERROR,{settings.model_version},0\n"
+                        return
+                    if breaker:
+                        breaker.record_success()
+                    per_item_latency = latency / max(len(labels), 1)
 
-                for text, label, prob in zip(batch_texts, labels, probs):
-                    clean_text = text.replace(",", " ").replace("\n", " ")[:100]
-                    risk_level, recommended_action = policy_decision(
-                        float(prob), threshold
-                    )
-                    yield f"{clean_text},{label},{prob:.4f},{threshold:.4f},{risk_level},{recommended_action},{settings.model_version},{per_item_latency * 1000:.2f}\n"
-                    metrics.record_prediction(label, per_item_latency)
+                    for text, label, prob in zip(batch_texts, labels, probs):
+                        clean_text = text.replace(",", " ").replace("\n", " ")[:100]
+                        risk_level, recommended_action = policy_decision(
+                            float(prob), threshold
+                        )
+                        yield f"{clean_text},{label},{prob:.4f},{threshold:.4f},{risk_level},{recommended_action},{settings.model_version},{per_item_latency * 1000:.2f}\n"
+                        metrics.record_prediction(label, per_item_latency)
 
-                batch_texts = []
+                    batch_texts = []
+        except UnicodeDecodeError as e:
+            logger.error(
+                json.dumps(
+                    {
+                        "event": "batch_encoding_error",
+                        "correlation_id": correlation_id,
+                        "error": str(e)[:500],
+                        "rows_processed": total_rows,
+                    }
+                )
+            )
+            yield f"ERROR,ENCODING_ERROR,0,0,ERROR,ERROR,{settings.model_version},0\n"
+            return
+        except csv.Error as e:
+            logger.error(
+                json.dumps(
+                    {
+                        "event": "batch_csv_error",
+                        "correlation_id": correlation_id,
+                        "error": str(e)[:500],
+                        "rows_processed": total_rows,
+                    }
+                )
+            )
+            yield f"ERROR,CSV_PARSE_ERROR,0,0,ERROR,ERROR,{settings.model_version},0\n"
+            return
 
         # Process remaining
         if batch_texts:
