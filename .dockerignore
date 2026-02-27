@@ -1,28 +1,104 @@
-__pycache__
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-.env
-.git
+# Git and version control
+.git/
 .gitignore
-.vscode
-.idea
-*.log
-*.sqlite
-coverage.xml
-.coverage
-htmlcov/
+.gitattributes
+
+# Python cache and build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
 dist/
 build/
-*.egg-info/
-tests/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Environment files (secrets should never be in images)
+.env
+.env.*
+!.env.production.example
+!.env.development.example
+
+# Jupyter notebooks and checkpoints
 notebooks/
-docs/
+.ipynb_checkpoints/
+.jupyter/
+
+# Frontend (not needed in backend image)
 frontend/
 node_modules/
+
+# Test files and coverage
+tests/
+test-results/
+.coverage
+htmlcov/
+*.coverage
+
+# Documentation (not needed at runtime)
+docs/
+*.md
+!README.md
 LICENSE
-README.md
-TODO.md
+
+# Data directories (models are included, data is not)
+data/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Docker files (not needed inside container)
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Scripts (not needed at runtime)
+scripts/
+lint.sh
+validate_env.py
+
+# Kiro configuration
+.kiro/
+
+# Pre-commit
+.pre-commit-config.yaml
+.pre-commit/
+
+# Logs
+*.log
+training.log
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*~
+
+# Build caches
+.pre-commit-cache/
+
+# CSV test files
+*.csv
+!data/**/*.csv
+
+# Playwright artifacts
+.playwright-cli/
+playwright-report/

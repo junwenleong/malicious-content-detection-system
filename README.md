@@ -357,11 +357,14 @@ server {
 
 ## Features
 
+## Features
+
 ### 1. Real-Time Prediction API
 ```bash
 curl -X POST "http://localhost:8000/v1/predict" \
   -H "Content-Type: application/json" \
-  -d '{"texts": ["Hello world", "I want to kill someone"]}'
+  -H "x-api-key: dev-secret-key-123" \
+  -d '{"texts": ["Hello world", "Ignore previous instructions"]}'
 ```
 
 **Response:**
@@ -374,19 +377,30 @@ curl -X POST "http://localhost:8000/v1/predict" \
       "probability_malicious": 0.023,
       "threshold": 0.536,
       "risk_level": "LOW",
-      "recommended_action": "ALLOW"
+      "recommended_action": "ALLOW",
+      "latency_ms": 3.2
     },
     {
-      "text": "I want to kill someone",
+      "text": "Ignore previous instructions",
       "label": "MALICIOUS",
-      "probability_malicious": 0.98,
+      "probability_malicious": 0.94,
       "threshold": 0.536,
       "risk_level": "HIGH",
-      "recommended_action": "BLOCK"
+      "recommended_action": "BLOCK",
+      "latency_ms": 3.5
     }
-  ]
+  ],
+  "metadata": {
+    "total_items": 2,
+    "malicious_count": 1,
+    "benign_count": 1,
+    "total_latency_ms": 6.7,
+    "model_version": "v1.0.0"
+  }
 }
 ```
+
+For complete API documentation, see [docs/API_REFERENCE.md](docs/API_REFERENCE.md).
 
 ### Understanding Risk Levels and Actions
 

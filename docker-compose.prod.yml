@@ -5,11 +5,12 @@ services:
     ports:
       - "8000:8000"
     environment:
-      # Production overrides
+      # Production overrides - MUST be provided via secrets management
       ALLOWED_ORIGINS: '["https://internal-tool.corp.com"]'
-      WORKERS: "4" # Fixed worker count or use auto
-      # Secrets must be provided by the environment/orchestrator
+      WORKERS: "4"
+      # Secrets must be provided by environment/orchestrator
       # API_KEY: ...
+      # HMAC_SECRET: ... (if HMAC_ENABLED=true)
     deploy:
       resources:
         limits:
@@ -28,6 +29,12 @@ services:
     read_only: true
     tmpfs:
       - /tmp
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   frontend:
     image: malicious-content-detection-frontend:latest
@@ -35,7 +42,8 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
       interval: 30s
@@ -46,3 +54,5 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    security_opt:
+      - no-new-privileges:true

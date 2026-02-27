@@ -15,10 +15,20 @@ from src.config import settings
 
 class Predictor(BasePredictor):
     def __init__(self, model_path: str, config_path: str) -> None:
+        """Initialize predictor with model loading and cache setup.
+
+        Args:
+            model_path: Path to trained model file (.pkl)
+            config_path: Path to model configuration file (.pkl)
+
+        Raises:
+            FileNotFoundError: If model files don't exist
+            ValueError: If model integrity check fails
+        """
         if not os.path.exists(model_path) or not os.path.exists(config_path):
             raise FileNotFoundError("Model files not found. Train the model first.")
 
-        # Verify integrity
+        # Verify integrity before loading (prevents loading tampered models)
         self._verify_checksum(model_path, settings.model_sha256)
         self._verify_checksum(config_path, settings.config_sha256)
 
@@ -27,41 +37,107 @@ class Predictor(BasePredictor):
         pos_class = self.config["positive_class"]
         self.pos_index = list(self.model.classes_).index(pos_class)
 
-        # Simple LRU cache: text -> probability
-        # Limit size to prevent memory leaks
+        # LRU cache for repeated queries (common in abuse campaigns)
+        # Size limit prevents memory leaks from unique adversarial inputs
         self._cache: OrderedDict[str, float] = OrderedDict()
-        self._cache_size = 10000
+        self._cache_size = 10000  # ~1MB memory for typical text hashes
         self._lock = threading.Lock()
 
+        # Cache statistics for monitoring
+        self._cache_hits = 0
+        self._cache_misses = 0
+
     def _cache_key(self, text: str) -> str:
-        """Generate a cache key. Use hash for long texts to avoid memory bloat."""
+        """Generate a cache key for text.
+
+        For long texts (>512 chars), use SHA256 hash to avoid memory bloat.
+        For short texts, use the text itself as the key for faster lookups.
+
+        Args:
+            text: Input text to generate key for
+
+        Returns:
+            Cache key (either text or hash)
+        """
         if len(text) > 512:
             return hashlib.sha256(text.encode("utf-8")).hexdigest()
         return text
 
     def _get_from_cache(self, text: str) -> Optional[float]:
+        """Retrieve probability from cache if available.
+
+        Args:
+            text: Input text to look up
+
+        Returns:
+            Cached probability or None if not found
+        """
         key = self._cache_key(text)
         with self._lock:
             if key in self._cache:
-                self._cache.move_to_end(key)
+                self._cache.move_to_end(key)  # LRU: mark as recently used
+                self._cache_hits += 1
                 return self._cache[key]
+            self._cache_misses += 1
         return None
 
     def _add_to_cache(self, text: str, prob: float) -> None:
+        """Add prediction to cache with LRU eviction.
+
+        Args:
+            text: Input text
+            prob: Predicted probability
+        """
         key = self._cache_key(text)
         with self._lock:
             self._cache[key] = prob
             self._cache.move_to_end(key)
+
+            # Evict oldest entry if cache is full
             if len(self._cache) > self._cache_size:
                 self._cache.popitem(last=False)
 
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """Get cache performance statistics.
+
+        Returns:
+            Dictionary with cache metrics
+        """
+        with self._lock:
+            total_requests = self._cache_hits + self._cache_misses
+            hit_rate = self._cache_hits / total_requests if total_requests > 0 else 0.0
+            return {
+                "cache_size": len(self._cache),
+                "cache_max_size": self._cache_size,
+                "cache_hits": self._cache_hits,
+                "cache_misses": self._cache_misses,
+                "hit_rate": hit_rate,
+            }
+
     def clear_cache(self) -> None:
-        """Clear the prediction cache. Useful after model updates or threshold changes."""
+        """Clear the prediction cache.
+
+        Useful after model updates or threshold changes.
+        Also resets cache statistics.
+        """
         with self._lock:
             self._cache.clear()
+            self._cache_hits = 0
+            self._cache_misses = 0
 
     def _verify_checksum(self, file_path: str, expected_hash: str) -> None:
-        """Verify file integrity to prevent loading tampered models."""
+        """Verify file integrity using SHA256 checksum.
+
+        This prevents loading tampered or corrupted model files.
+        The system will refuse to start if checksums don't match.
+
+        Args:
+            file_path: Path to file to verify
+            expected_hash: Expected SHA256 hash
+
+        Raises:
+            ValueError: If checksum doesn't match expected value
+        """
         sha256_hash = hashlib.sha256()
         with open(file_path, "rb") as f:
             for byte_block in iter(lambda: f.read(4096), b""):
@@ -78,7 +154,18 @@ class Predictor(BasePredictor):
     _CONTROL_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]")
 
     def _normalize_text(self, text: str) -> str:
-        """Normalize text to NFKC form and strip control characters."""
+        """Normalize text to NFKC form and strip control characters.
+
+        NFKC normalization converts compatibility characters and homoglyphs
+        into their canonical forms, helping prevent evasion attacks.
+        Control characters are stripped to prevent injection attacks.
+
+        Args:
+            text: Raw input text
+
+        Returns:
+            Normalized text safe for feature extraction
+        """
         normalized = unicodedata.normalize("NFKC", text)
         normalized = self._CONTROL_CHAR_RE.sub("", normalized)
         return normalized
@@ -86,6 +173,19 @@ class Predictor(BasePredictor):
     def predict(
         self, texts: List[str], threshold: Optional[float] = None
     ) -> Tuple[List[str], List[float], float]:
+        """Predict malicious content labels and probabilities for input texts.
+
+        Args:
+            texts: List of text strings to classify
+            threshold: Optional decision threshold (uses model config if None)
+
+        Returns:
+            Tuple of (labels, probabilities, latency_seconds)
+
+        Raises:
+            RuntimeError: If prediction fails due to model error
+        """
+        # Edge case: Empty input
         if not texts:
             return [], [], 0.0
 
@@ -112,17 +212,28 @@ class Predictor(BasePredictor):
             try:
                 miss_probs = self.model.predict_proba(miss_texts)[:, self.pos_index]
                 for idx, prob in zip(miss_indices, miss_probs):
-                    probs[idx] = float(prob)
-                    self._add_to_cache(normalized_texts[idx], float(prob))
+                    # Clamp probabilities to valid range [0, 1]
+                    # Some calibration methods can produce values slightly outside
+                    clamped_prob = max(0.0, min(1.0, float(prob)))
+                    probs[idx] = clamped_prob
+                    self._add_to_cache(normalized_texts[idx], clamped_prob)
             except Exception as e:
-                # Wrap obscure sklearn/joblib errors
-                raise RuntimeError(f"Prediction failed: {str(e)}") from e
+                # Wrap obscure sklearn/joblib errors with context
+                raise RuntimeError(
+                    f"Prediction failed: {str(e)}. "
+                    "This may indicate model corruption or incompatible input."
+                ) from e
 
+        # Apply threshold with defensive clamping
         effective_threshold = (
             float(threshold)
             if threshold is not None
             else float(self.config["optimal_threshold"])
         )
+
+        # Clamp threshold to valid range
+        effective_threshold = max(0.0, min(1.0, effective_threshold))
+
         labels = ["MALICIOUS" if p >= effective_threshold else "BENIGN" for p in probs]
         latency = time.monotonic() - start_time
         return labels, probs, latency

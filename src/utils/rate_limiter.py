@@ -12,9 +12,19 @@ class RateLimiter:
         self._lock = threading.Lock()
 
     def _cleanup(self, client_id: str, now: float) -> None:
-        """Remove expired timestamps for a client. Must be called with lock held."""
+        """Remove expired timestamps for a client.
+
+        This prevents memory leaks by removing old timestamps outside the window.
+        Must be called with lock held.
+
+        Args:
+            client_id: Client identifier
+            now: Current timestamp
+        """
         window_start = now - self.window_seconds
         timestamps = self.requests[client_id]
+
+        # Remove all timestamps older than the window
         while timestamps and timestamps[0] < window_start:
             timestamps.popleft()
 

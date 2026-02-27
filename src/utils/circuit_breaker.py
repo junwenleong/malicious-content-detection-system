@@ -12,14 +12,24 @@ class CircuitBreaker:
         self._lock = threading.Lock()
 
     def allow_request(self) -> bool:
+        """Check if a request should be allowed through the circuit breaker.
+
+        Returns:
+            True if request is allowed, False if circuit is open
+        """
         with self._lock:
             now = time.monotonic()
+
+            # Circuit is open - reject request
             if now < self.open_until:
                 return False
-            # If breaker was open and cooldown expired, enter half-open
+
+            # Circuit was open but cooldown expired - enter half-open state
+            # Allow one probe request to test if service recovered
             if self._was_open:
-                # Allow one probe request in half-open state
                 return True
+
+            # Circuit is closed - allow request
             return True
 
     def record_success(self) -> None:

@@ -44,21 +44,28 @@ def health(request: Request, response: Response) -> Dict[str, Any]:
 
 @router.get("/model-info")
 def model_info(request: Request) -> Dict[str, Any]:
+    """Get model configuration and cache performance statistics."""
     predictor: Predictor | None = getattr(request.app.state, "predictor", None)
     config_threshold = None
     positive_class = None
+    cache_stats = {}
+
     if predictor:
         config_threshold = predictor.config.get("optimal_threshold")
         positive_class = predictor.config.get("positive_class")
+        cache_stats = predictor.get_cache_stats()
+
     decision_threshold = (
         settings.decision_threshold
         if settings.decision_threshold is not None
         else config_threshold
     )
+
     return {
         "model_version": settings.model_version,
         "decision_threshold": decision_threshold,
         "config_threshold": config_threshold,
         "positive_class": positive_class,
         "model_loaded": predictor is not None,
+        "cache_stats": cache_stats,
     }

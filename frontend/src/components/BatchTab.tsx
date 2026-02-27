@@ -80,7 +80,11 @@ export function BatchTab({ apiUrl, apiKey }: BatchTabProps) {
     <Box display="grid" gap={2}>
       {/* Instructions */}
       <Alert severity="info" sx={{ mb: 1 }}>
-        Upload a CSV file with a <code>text</code> column. Each row will be analyzed and scored for malicious content.
+        Upload a CSV file with a <code>text</code> column. Each row will be analyzed for malicious content.
+        <br />
+        <Typography variant="caption" sx={{ mt: 0.5, display: 'block' }}>
+          Maximum file size: 10 MB. Supported format: CSV with UTF-8 encoding.
+        </Typography>
       </Alert>
 
       <Button variant="outlined" component="label" aria-label="Select a CSV file to upload">
@@ -115,8 +119,12 @@ export function BatchTab({ apiUrl, apiKey }: BatchTabProps) {
         {batchLoading && <CircularProgress size={24} aria-label="Processing batch file" />}
       </Box>
       {batchError && (
-        <Alert severity="error" onClose={() => setBatchError('')}>
-          {batchError}
+        <Alert severity="error" onClose={() => setBatchError('')} role="alert">
+          <strong>Batch Processing Failed:</strong> {batchError}
+          <br />
+          <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
+            Common issues: File too large (&gt;10MB), missing &apos;text&apos; column, or invalid CSV format.
+          </Typography>
         </Alert>
       )}
       {batchPreview.length > 0 && (
