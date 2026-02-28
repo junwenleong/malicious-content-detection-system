@@ -46,12 +46,23 @@ echo -e "${YELLOW}📦 Staging changes...${NC}"
 git add .
 echo -e "${GREEN}✓ Changes staged${NC}"
 
-# Step 4: Commit with GPG signature
+# Step 4: Commit with GPG signature (pre-commit hook runs here)
 echo -e "${YELLOW}📝 Committing with message: ${COMMIT_MSG}${NC}"
-git commit -S -m "$COMMIT_MSG" || {
-    echo -e "${RED}❌ Commit failed. Check pre-commit hooks output above.${NC}"
-    exit 1
-}
+if ! git commit -S -m "$COMMIT_MSG"; then
+    # Check if pre-commit made auto-fixes
+    if ! git diff --cached --quiet; then
+        echo -e "${YELLOW}⚠️  Pre-commit hooks auto-fixed some files. Re-staging...${NC}"
+        git add -u
+        echo -e "${GREEN}✓ Auto-fixes applied and staged. Committing again...${NC}"
+        git commit -S -m "$COMMIT_MSG" || {
+            echo -e "${RED}❌ Commit failed after auto-fixes. Check output above.${NC}"
+            exit 1
+        }
+    else
+        echo -e "${RED}❌ Commit failed for reasons other than auto-fixes. Check pre-commit hooks output above.${NC}"
+        exit 1
+    fi
+fi
 echo -e "${GREEN}✓ Committed${NC}"
 
 # Step 5: Push to remote

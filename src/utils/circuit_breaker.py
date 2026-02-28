@@ -48,12 +48,16 @@ class CircuitBreaker:
 
     @property
     def state(self) -> str:
+        """Get current circuit breaker state.
+
+        Returns:
+            "open", "half-open", or "closed"
+        """
         with self._lock:
             now = time.monotonic()
             if now < self.open_until:
                 return "open"
             if self._was_open:
                 return "half-open"
-            if self.failure_count > 0:
-                return "half-open"
+            # Circuit is closed (even if there are some failures)
             return "closed"

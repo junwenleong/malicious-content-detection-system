@@ -1,4 +1,5 @@
 import time
+import pytest
 from src.utils.circuit_breaker import CircuitBreaker
 
 
@@ -29,6 +30,7 @@ def test_circuit_breaker_flow() -> None:
     assert cb.failure_count == 0
 
 
+@pytest.mark.slow
 def test_circuit_breaker_reset_behavior() -> None:
     # Test if it resets count after cooldown
     cb = CircuitBreaker(failure_threshold=2, cooldown_seconds=0.1)
@@ -51,6 +53,7 @@ def test_circuit_breaker_reset_behavior() -> None:
     assert cb.allow_request() is False
 
 
+@pytest.mark.slow
 def test_circuit_breaker_half_open_state() -> None:
     """Test that breaker enters half-open after cooldown expires."""
     cb = CircuitBreaker(failure_threshold=2, cooldown_seconds=0.1)

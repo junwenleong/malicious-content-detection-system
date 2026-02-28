@@ -2,29 +2,32 @@ import csv
 import io
 import json
 import logging
-from typing import AsyncGenerator
+from typing import AsyncGenerator, List, Tuple
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
 
-from src.api.dependencies import require_api_key, resolve_threshold
+from src.api.dependencies import (
+    require_api_key,
+    resolve_threshold,
+    get_predictor,
+    get_metrics,
+    get_circuit_breaker,
+    check_rate_limit,
+    check_circuit_breaker,
+)
 from src.config import settings
-from src.inference.predictor import Predictor
+from src.inference.base import BasePredictor
 from src.utils.circuit_breaker import CircuitBreaker
 from src.utils.metrics import Metrics
 from src.utils.policy import policy_decision
-from src.utils.rate_limiter import RateLimiter
 
 router = APIRouter(prefix="/v1")
 logger = logging.getLogger(__name__)
 
 
-@router.post("/batch")
-async def batch_predict(
-    req: Request,
-    file: UploadFile = File(...),
-    _: None = Depends(require_api_key),
-) -> StreamingResponse:
+def _validate_csv_file(file: UploadFile, content_length: str | None) -> None:
+    """Validate CSV file format and size."""
     if not file.filename or not file.filename.lower().endswith(".csv"):
         raise HTTPException(status_code=400, detail="Only .csv files accepted")
 
@@ -42,44 +45,12 @@ async def batch_predict(
             detail=f"Invalid content type: {file.content_type}. Only CSV allowed.",
         )
 
-    content_length = req.headers.get("content-length")
     if content_length and int(content_length) > settings.max_csv_bytes:
         raise HTTPException(status_code=413, detail="CSV file too large")
 
-    metrics: Metrics = req.app.state.metrics
-    breaker: CircuitBreaker | None = getattr(req.app.state, "breaker", None)
-    if breaker and not breaker.allow_request():
-        metrics.record_error()
-        raise HTTPException(status_code=503, detail="Inference temporarily unavailable")
-    predictor: Predictor = req.app.state.predictor
-    correlation_id = getattr(req.state, "correlation_id", None)
-    if predictor is None:
-        metrics.record_error()
-        raise HTTPException(status_code=503, detail="Model unavailable")
 
-    # Rate limit batch requests
-    client_ip = req.client.host if req.client else "unknown"
-    rate_limiter: RateLimiter = req.app.state.rate_limiter
-    if not rate_limiter.is_allowed(client_ip):
-        raise HTTPException(
-            status_code=429,
-            detail="Rate limit exceeded",
-            headers={"Retry-After": str(settings.rate_limit_window)},
-        )
-
-    threshold = resolve_threshold(predictor)
-
-    # Create a wrapper that handles decoding properly
-    # UploadFile.file is a SpooledTemporaryFile which is binary
-    try:
-        text_stream = io.TextIOWrapper(file.file, encoding="utf-8", errors="strict")
-    except UnicodeDecodeError as e:
-        raise HTTPException(
-            status_code=400, detail=f"Invalid UTF-8 encoding in file: {str(e)}"
-        )
-
-    # Check header first without reading whole file
-    # We read the first line to check headers, then seek back
+def _validate_csv_header(text_stream: io.TextIOWrapper) -> None:
+    """Validate CSV has required 'text' column."""
     try:
         first_line = text_stream.readline()
     except UnicodeDecodeError as e:
@@ -92,14 +63,86 @@ async def batch_predict(
 
     # Simple check for 'text' column in header
     if "text" not in first_line:
-        # Try to parse as CSV to be sure, but this is a quick fail
-        # Reset and use DictReader properly
+        # Try to parse as CSV to be sure
         text_stream.seek(0)
         csv_reader = csv.DictReader(text_stream)
         if not csv_reader.fieldnames or "text" not in csv_reader.fieldnames:
             raise HTTPException(status_code=400, detail="CSV must have 'text' column")
 
     text_stream.seek(0)
+
+
+async def _process_batch(
+    batch_texts: List[str],
+    predictor: BasePredictor,
+    threshold: float,
+    breaker: CircuitBreaker | None,
+    metrics: Metrics,
+    correlation_id: str | None,
+) -> Tuple[List[str], List[float], float] | None:
+    """Process a batch of texts and return predictions or None on error."""
+    try:
+        labels, probs, latency = await predictor.apredict(batch_texts, threshold)
+        if breaker:
+            breaker.record_success()
+        return labels, probs, latency
+    except Exception as exc:
+        if breaker:
+            breaker.record_failure()
+        metrics.record_error()
+        logger.error(
+            json.dumps(
+                {
+                    "event": "batch_inference_error",
+                    "correlation_id": correlation_id,
+                    "error": str(exc)[:500],
+                }
+            )
+        )
+        return None
+
+
+def _format_csv_row(
+    text: str,
+    label: str,
+    prob: float,
+    threshold: float,
+    per_item_latency: float,
+) -> str:
+    """Format a single prediction result as CSV row."""
+    clean_text = text.replace(",", " ").replace("\n", " ")[:100]
+    risk_level, recommended_action = policy_decision(float(prob), threshold)
+    return f"{clean_text},{label},{prob:.4f},{threshold:.4f},{risk_level},{recommended_action},{settings.model_version},{per_item_latency * 1000:.2f}\n"
+
+
+@router.post("/batch")
+async def batch_predict(
+    req: Request,
+    file: UploadFile = File(...),
+    _: None = Depends(require_api_key),
+    __: None = Depends(check_rate_limit),
+    ___: None = Depends(check_circuit_breaker),
+) -> StreamingResponse:
+    """Process CSV file with batch predictions."""
+    content_length = req.headers.get("content-length")
+    _validate_csv_file(file, content_length)
+
+    # Get dependencies
+    predictor: BasePredictor = get_predictor(req)
+    metrics: Metrics = get_metrics(req)
+    breaker: CircuitBreaker | None = get_circuit_breaker(req)
+    correlation_id = getattr(req.state, "correlation_id", None)
+    threshold = resolve_threshold(predictor)
+
+    # Create text stream wrapper
+    try:
+        text_stream = io.TextIOWrapper(file.file, encoding="utf-8", errors="strict")
+    except UnicodeDecodeError as e:
+        raise HTTPException(
+            status_code=400, detail=f"Invalid UTF-8 encoding in file: {str(e)}"
+        )
+
+    _validate_csv_header(text_stream)
     csv_reader = csv.DictReader(text_stream)
 
     total_rows = 0
@@ -118,39 +161,29 @@ async def batch_predict(
                     total_rows += 1
 
                 if len(batch_texts) >= chunk_size:
-                    try:
-                        labels, probs, latency = await predictor.apredict(
-                            batch_texts, threshold
-                        )
-                    except Exception as exc:
-                        if breaker:
-                            breaker.record_failure()
-                        metrics.record_error()
-                        logger.error(
-                            json.dumps(
-                                {
-                                    "event": "batch_inference_error",
-                                    "correlation_id": correlation_id,
-                                    "error": str(exc)[:500],
-                                    "rows_processed": total_rows,
-                                }
-                            )
-                        )
+                    result = await _process_batch(
+                        batch_texts,
+                        predictor,
+                        threshold,
+                        breaker,
+                        metrics,
+                        correlation_id,
+                    )
+                    if result is None:
                         yield f"ERROR,INFERENCE_FAILED,0,0,ERROR,ERROR,{settings.model_version},0\n"
                         return
-                    if breaker:
-                        breaker.record_success()
+
+                    labels, probs, latency = result
                     per_item_latency = latency / max(len(labels), 1)
 
                     for text, label, prob in zip(batch_texts, labels, probs):
-                        clean_text = text.replace(",", " ").replace("\n", " ")[:100]
-                        risk_level, recommended_action = policy_decision(
-                            float(prob), threshold
+                        yield _format_csv_row(
+                            text, label, prob, threshold, per_item_latency
                         )
-                        yield f"{clean_text},{label},{prob:.4f},{threshold:.4f},{risk_level},{recommended_action},{settings.model_version},{per_item_latency * 1000:.2f}\n"
                         metrics.record_prediction(label, per_item_latency)
 
                     batch_texts = []
+
         except UnicodeDecodeError as e:
             logger.error(
                 json.dumps(
@@ -178,36 +211,22 @@ async def batch_predict(
             yield f"ERROR,CSV_PARSE_ERROR,0,0,ERROR,ERROR,{settings.model_version},0\n"
             return
 
-        # Process remaining
+        # Process remaining batch
         if batch_texts:
-            try:
-                labels, probs, latency = await predictor.apredict(
-                    batch_texts, threshold
-                )
-            except Exception as exc:
-                if breaker:
-                    breaker.record_failure()
-                metrics.record_error()
-                logger.error(
-                    json.dumps(
-                        {
-                            "event": "batch_inference_error",
-                            "correlation_id": correlation_id,
-                            "error": str(exc)[:500],
-                            "rows_processed": total_rows,
-                        }
-                    )
-                )
+            result = await _process_batch(
+                batch_texts, predictor, threshold, breaker, metrics, correlation_id
+            )
+            if result is None:
                 yield f"ERROR,INFERENCE_FAILED,0,0,ERROR,ERROR,{settings.model_version},0\n"
                 return
-            if breaker:
-                breaker.record_success()
+
+            labels, probs, latency = result
             per_item_latency = latency / max(len(labels), 1)
+
             for text, label, prob in zip(batch_texts, labels, probs):
-                clean_text = text.replace(",", " ").replace("\n", " ")[:100]
-                risk_level, recommended_action = policy_decision(float(prob), threshold)
-                yield f"{clean_text},{label},{prob:.4f},{threshold:.4f},{risk_level},{recommended_action},{settings.model_version},{per_item_latency * 1000:.2f}\n"
+                yield _format_csv_row(text, label, prob, threshold, per_item_latency)
                 metrics.record_prediction(label, per_item_latency)
+
         logger.info(
             json.dumps(
                 {

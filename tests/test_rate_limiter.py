@@ -1,4 +1,5 @@
 import time
+import pytest
 from src.utils.rate_limiter import RateLimiter
 
 
@@ -15,6 +16,7 @@ def test_rate_limiter_basic() -> None:
     assert limiter.is_allowed(client_id) is False
 
 
+@pytest.mark.slow
 def test_rate_limiter_window() -> None:
     # 2 requests per 1 second
     limiter = RateLimiter(max_requests=2, window_seconds=1)
@@ -31,6 +33,7 @@ def test_rate_limiter_window() -> None:
     assert limiter.is_allowed(client_id) is True
 
 
+@pytest.mark.slow
 def test_rate_limiter_cleanup() -> None:
     # Verify old timestamps are removed
     limiter = RateLimiter(max_requests=10, window_seconds=1)

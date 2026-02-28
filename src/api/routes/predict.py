@@ -3,15 +3,22 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from src.api.schemas import PredictRequest, PredictResponse, PredictionResult
-from src.api.dependencies import require_api_key, resolve_threshold
+from src.api.dependencies import (
+    require_api_key,
+    resolve_threshold,
+    get_predictor,
+    get_metrics,
+    get_circuit_breaker,
+    check_rate_limit,
+    check_circuit_breaker,
+)
+from src.api.auth import verify_signature
 from src.config import settings
-from src.inference.predictor import Predictor
+from src.inference.base import BasePredictor
 from src.utils.circuit_breaker import CircuitBreaker
 from src.utils.metrics import Metrics
 from src.utils.policy import policy_decision
-from src.utils.rate_limiter import RateLimiter
 from src.utils.text import hash_text
-from src.api.auth import verify_signature
 
 router = APIRouter(prefix="/v1")
 logger = logging.getLogger(__name__)
@@ -24,28 +31,9 @@ async def predict(
     request: PredictRequest,
     req: Request,
     _: None = Depends(require_api_key),
+    __: None = Depends(check_rate_limit),
+    ___: None = Depends(check_circuit_breaker),
 ) -> PredictResponse:
-    if not req.client or not req.client.host:
-        raise HTTPException(status_code=400, detail="Could not determine client IP")
-
-    client_ip = req.client.host
-    rate_limiter: RateLimiter = req.app.state.rate_limiter
-    if not rate_limiter.is_allowed(client_ip):
-        logger.warning(
-            json.dumps(
-                {
-                    "event": "rate_limit_exceeded",
-                    "correlation_id": getattr(req.state, "correlation_id", None),
-                    "client_ip": client_ip,
-                }
-            )
-        )
-        raise HTTPException(
-            status_code=429,
-            detail="Rate limit exceeded",
-            headers={"Retry-After": str(settings.rate_limit_window)},
-        )
-
     # Defensive: Strip whitespace and validate non-empty
     texts = [text.strip() for text in request.texts]
 
@@ -66,16 +54,10 @@ async def predict(
     if any(len(text) > settings.max_text_length for text in texts):
         raise HTTPException(status_code=400, detail="Text exceeds maximum length")
 
-    metrics: Metrics = req.app.state.metrics
-    breaker: CircuitBreaker | None = getattr(req.app.state, "breaker", None)
-    if breaker and not breaker.allow_request():
-        metrics.record_error()
-        raise HTTPException(status_code=503, detail="Inference temporarily unavailable")
-    predictor: Predictor = req.app.state.predictor
-    if predictor is None:
-        metrics.record_error()
-        raise HTTPException(status_code=503, detail="Model unavailable")
-
+    # Get dependencies
+    predictor: BasePredictor = get_predictor(req)
+    metrics: Metrics = get_metrics(req)
+    breaker: CircuitBreaker | None = get_circuit_breaker(req)
     threshold = resolve_threshold(predictor)
     try:
         labels, probs, latency = await predictor.apredict(texts, threshold)

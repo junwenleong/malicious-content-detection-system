@@ -20,3 +20,8 @@ class BasePredictor(ABC):
     ) -> Tuple[List[str], List[float], float]:
         """Asynchronous prediction."""
         pass
+
+    @abstractmethod
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """Get cache performance statistics."""
+        pass
