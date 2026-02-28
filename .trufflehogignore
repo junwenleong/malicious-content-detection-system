@@ -1,0 +1,14 @@
+# TruffleHog ignore patterns
+# Format: path/to/file:line_number or path/to/file:* for entire file
+
+# Example environment files (not real secrets)
+.env.development.example:*
+.env.production.example:*
+.env.staging.example:*
+
+# Test fixtures with fake credentials
+tests/fixtures/*:*
+
+# Documentation with example keys
+docs/*:*
+README.md:*

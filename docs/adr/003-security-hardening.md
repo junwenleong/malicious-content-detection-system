@@ -1,10 +1,13 @@
 # ADR 003: Security Hardening and Audit Logging
 
 ## Status
+
 Accepted
 
 ## Context
+
 The malicious content detection system exposes an API that processes potentially untrusted text. To ensure the system's integrity, availability, and confidentiality, we need to implement robust security controls. Specifically, we need to address:
+
 - Denial of Service (DoS) risks from large payloads.
 - Unauthorized access and brute-force attacks.
 - Lack of visibility into security-relevant events (audit trail).
@@ -35,10 +38,12 @@ We have decided to implement the following security measures:
 ## Consequences
 
 ### Positive
+
 - **Resilience**: The system is protected against common DoS vectors.
 - **Observability**: Security incidents (brute force, invalid keys) are immediately visible and queryable in logs.
 - **Compliance**: The system meets basic security best practices for secret management and auditing.
 
 ### Negative
+
 - **Configuration Complexity**: Deployments must provide valid, strong secrets.
 - **Client Overhead**: Clients must handle API keys and potentially HMAC signatures correctly.

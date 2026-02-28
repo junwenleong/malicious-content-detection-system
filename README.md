@@ -13,6 +13,7 @@ This system was designed as an internal security tooling prototype for AI testin
 The **React frontend** is a lightweight dashboard for manual testing and batch upload, but automated testing teams primarily integrate with the API directly. The system is Dockerized to support deployment inside restricted enterprise environments where sending prompts to external cloud services may violate compliance or data handling policies.
 
 The frontend exists for:
+
 - Manual validation
 - QA spot-checking
 - Batch CSV upload
@@ -23,6 +24,7 @@ But the real system value is **API-first design**.
 > **Note:** The public dataset replaces internal data sources, which cannot be shared. The system architecture mirrors internal tooling patterns.
 
 ## How It Integrates
+
 - Drop behind an NGINX or API gateway and route `/v1/predict` and `/v1/batch` to the backend.
 - Use the structured JSON audit logs (with correlation IDs) to feed your SIEM or data lake.
 - Scrape `/metrics` for basic service metrics; extend as needed for SLOs.
@@ -30,7 +32,9 @@ But the real system value is **API-first design**.
 - Use the risk policy outputs to drive business actions: ALLOW, flag for REVIEW, or BLOCK.
 
 ## Deployment & Operations
+
 For production deployment, see [DEPLOYMENT.md](DEPLOYMENT.md).
+
 - **Docker**: Multi-stage builds, non-root user.
 - **Observability**: Prometheus metrics, JSON logs.
 - **Security**: Hardened config available in `docker-compose.prod.yml`.
@@ -38,13 +42,16 @@ For production deployment, see [DEPLOYMENT.md](DEPLOYMENT.md).
 ## Quick Start (Windows)
 
 ### Prerequisites
+
 - Docker Desktop (running)
 - WSL 2 (recommended)
 
 ### Configuration (New)
+
 Before running the system, set up your environment:
 
 1. Copy the example environment file:
+
    ```bash
    # Backend
    cp .env.development.example .env
@@ -61,9 +68,11 @@ Before running the system, set up your environment:
    ```
 
 ### Running the System
+
 To start both backend and frontend services:
 
 **Bash (macOS/Linux)**
+
 ```bash
 ./run.sh
 ```
@@ -72,9 +81,11 @@ To start both backend and frontend services:
 - **Frontend:** http://localhost:5173
 
 ### Testing the API
+
 To run the integration tests against a running backend:
 
 **Testing the API**
+
 ```bash
 pytest tests/test_api.py
 ```
@@ -82,11 +93,14 @@ pytest tests/test_api.py
 ## Quick Start (macOS / Linux)
 
 ### Prerequisites
+
 - Docker Desktop or Docker Engine (running)
 - Python 3.11+
 
 ### Configuration
+
 1. Copy the example environment file:
+
    ```bash
    # Backend
    cp .env.development.example .env
@@ -103,11 +117,13 @@ pytest tests/test_api.py
    ```
 
 ### Running the System
+
 ```bash
 ./run.sh
 ```
 
 Or with Docker Compose directly:
+
 ```bash
 docker compose up --build
 ```
@@ -116,16 +132,74 @@ docker compose up --build
 - **Frontend:** http://localhost:5173
 
 ### Testing the API
+
 ```bash
 pip install -r requirements-dev.txt
 pytest tests/ -v
 ```
+
+### Development Workflow
+
+For local development with pre-commit hooks and testing:
+
+1. **Install development dependencies:**
+
+   ```bash
+   pip install -r requirements-dev.txt
+   cd frontend && npm install && cd ..
+   ```
+
+2. **Setup pre-commit hooks** (recommended):
+
+   ```bash
+   ./scripts/setup-hooks.sh
+   ```
+
+   This installs fast pre-commit hooks (< 5s) that catch 90% of issues:
+   - TruffleHog secret detection
+   - Ruff lint + format (Python)
+   - Mypy type checking
+   - Prettier + ESLint (frontend)
+   - Fast unit tests only
+
+3. **Development commands:**
+
+   ```bash
+   # Run fast unit tests (what pre-commit runs)
+   pytest -m "not slow and not integration"
+
+   # Run full test suite
+   pytest tests/ -v
+
+   # Run with coverage
+   pytest --cov=src tests/
+
+   # Lint and format
+   ruff check --fix src/
+   ruff format src/
+   mypy src/
+   ```
+
+4. **Ship changes** (full validation + commit + push):
+
+   ```bash
+   ./ship.sh "Your commit message"
+   ```
+
+   This runs full tests, formats code, commits with GPG signature, and pushes.
+
+**See also:**
+
+- `docs/PRE_COMMIT_GUIDE.md` - Detailed pre-commit setup and troubleshooting
+- `.kiro/steering/development-workflow.md` - Complete development workflow guide
+- `.kiro/steering/tech.md` - Technology stack and commands reference
 
 ---
 
 ## Problem Statement
 
 Modern APIs (especially LLM APIs) face systematic abuse:
+
 - **Prompt injection attacks** attempting to bypass safety controls
 - **Automated policy violations** at scale
 - **Coordinated campaigns** exploiting API endpoints
@@ -133,6 +207,7 @@ Modern APIs (especially LLM APIs) face systematic abuse:
 Manual review doesn't scale well to the amount of requests APIs get.
 
 This system uses ML to detect malicious content **before** it reaches downstream systems, with:
+
 - **High recall** (catch violations)
 - **Calibrated probabilities** (reliable confidence scores)
 - **Production-ready deployment** (real-time + batch processing)
@@ -192,6 +267,7 @@ This system uses ML to detect malicious content **before** it reaches downstream
 ## Performance Engineering
 
 ### ⚡ Optimizations
+
 - **LRU Caching**: Implemented a thread-safe LRU cache (10,000 items) in the prediction pipeline. This drastically reduces latency for repeated queries (common in spam/abuse campaigns).
   - Code Reference: [predictor.py](src/inference/predictor.py)
 - **Concurrency**: Configured Gunicorn to auto-detect CPU cores and spawn `(2 x Cores) + 1` workers, maximizing throughput for the CPU-bound inference workload.
@@ -209,6 +285,7 @@ This system uses ML to detect malicious content **before** it reaches downstream
 - **Domain:** Prompt injection and jailbreak detection (specifically curated for detecting manipulation attempts)
 
 **Why this dataset:**
+
 - Larger and better balanced than previous dataset (39,234 samples, perfect 50/50 split)
 - Specifically curated for malicious prompt detection (jailbreaks, prompt injection)
 - Publicly available (reproducible)
@@ -219,16 +296,19 @@ This system uses ML to detect malicious content **before** it reaches downstream
 **This public dataset is exceptionally clean and well-separated**, which affects the observed metrics and calibration behavior:
 
 **Why the metrics are strong:**
+
 1. **Good separation**: The dataset has clear boundaries between benign and malicious examples, resulting in 98.81% ROC AUC
 2. **Improved calibration**: The raw model calibration error (0.0055) is reduced to 0.0025 through isotonic calibration (55% improvement)
 3. **Isotonic calibration**: More flexible than sigmoid, captures non-monotonic relationships for better probability reliability
 
 **What this means:**
+
 - The **methodology** (TF-IDF → Logistic Regression → Calibration → Threshold optimization) is sound and production-ready
 - The **calibration improvement** (~55% error reduction) demonstrates the value of probability calibration
 - In production with noisier, more ambiguous data, calibration typically shows even more substantial improvements
 
 **Production comparison:**
+
 - **Demo**: 98.82% AUC, calibration error 0.0055 → 0.0025 (improved calibration)
 - **Production**: 85-92% AUC, calibration error 0.18 → 0.04 (0.14 improvement - much larger!)
 
@@ -237,11 +317,12 @@ This system uses ML to detect malicious content **before** it reaches downstream
 > **⚠️ Important Note on Model Behavior:**
 > The public dataset used for this demo is specifically designed to detect **prompt injection / jailbreak attempts** (e.g., "Ignore previous instructions..."), rather than direct harmful questions.
 >
-> As per the dataset documentation: *"We decided to classify prompts to malicious only if there's an attempt to manipulate them - that means that a bad prompt (i.e asking how to create a bomb) will be classified as benign since it's a straight up question!"*
+> As per the dataset documentation: _"We decided to classify prompts to malicious only if there's an attempt to manipulate them - that means that a bad prompt (i.e asking how to create a bomb) will be classified as benign since it's a straight up question!"_
 >
 > Therefore, simple harmful queries like "how do i hurt him" are **correctly classified as BENIGN** by this specific model. Real-world enterprise deployments would use a composite dataset covering both direct harm and jailbreaks.
 
 **Data Sensitivity**
+
 - This repository mirrors the production architecture. Only datasets and secrets have been swapped to public/safe equivalents for demonstration.
 - If you use your organization’s datasets, re‑run evaluation and refresh the model card with your metrics before production.
 
@@ -283,12 +364,14 @@ This system uses ML to detect malicious content **before** it reaches downstream
 ```
 
 **Architecture decisions:**
+
 1. **TF-IDF over embeddings**: Faster inference, interpretable features, sufficient for this task
 2. **Logistic regression**: Baseline with excellent speed/accuracy trade-off
 3. **Isotonic calibration**: More flexible than sigmoid, captures non-monotonic relationships for reliable probabilities
 4. **0.536 threshold**: Selected via validation set F1 optimization
 
 **Demo Dataset Performance:**
+
 - ROC AUC: 0.9881 (test set, calibrated model)
 - Optimal Threshold: 0.536 (F1-optimized on validation set)
 - Test Set Performance (at threshold 0.536):
@@ -301,6 +384,7 @@ This system uses ML to detect malicious content **before** it reaches downstream
 > **Production Note**: The demo dataset is unusually clean, resulting in near-perfect metrics. Real-world enterprise datasets with noisier content typically show 85-92% AUC with more substantial calibration improvements (error reduction from ~0.18 to ~0.04).
 
 ## Resilience & Policy
+
 - **Circuit Breaker:** Protects inference service from cascading failures (configurable threshold/cooldown).
 - **Shared Policy:** Centralized logic for risk levels (LOW/MEDIUM/HIGH) and actions (ALLOW/REVIEW/BLOCK) ensures consistency across API and Batch endpoints.
 - **Model Versioning:** Responses include `model_version` for traceability.
@@ -324,6 +408,7 @@ This system uses ML to detect malicious content **before** it reaches downstream
 ```
 
 **Example NGINX reverse proxy (single host):**
+
 ```nginx
 server {
   listen 80;
@@ -346,6 +431,7 @@ server {
 **Production env example:** see [.env.production.example](file:///c:/Users/Admin/Desktop/Projects/malicious-content-detection-system/.env.production.example)
 
 ### Production Awareness Checklist
+
 - Secure defaults: API keys required; optional HMAC signing for high‑risk endpoints
 - Defensive controls: rate limiting for auth attempts; circuit breaker on inference
 - Input hygiene: Unicode normalization (NFKC) and strict validation on batch uploads
@@ -360,6 +446,7 @@ server {
 ## Features
 
 ### 1. Real-Time Prediction API
+
 ```bash
 curl -X POST "http://localhost:8000/v1/predict" \
   -H "Content-Type: application/json" \
@@ -368,6 +455,7 @@ curl -X POST "http://localhost:8000/v1/predict" \
 ```
 
 **Response:**
+
 ```json
 {
   "predictions": [
@@ -407,16 +495,19 @@ For complete API documentation, see [docs/API_REFERENCE.md](docs/API_REFERENCE.m
 The system uses a two-tier decision framework:
 
 **Risk Levels** (based on probability):
+
 - **HIGH**: probability ≥ 0.85 (85%)
 - **MEDIUM**: 0.6 ≤ probability < 0.85 (60-85%)
 - **LOW**: probability < 0.6 (< 60%)
 
 **Recommended Actions** (based on probability and threshold):
+
 - **BLOCK**: probability ≥ threshold + 0.15
 - **REVIEW**: threshold ≤ probability < threshold + 0.15
 - **ALLOW**: probability < threshold
 
 **Example** (with threshold = 0.536):
+
 - Probability 0.849 (84.9%) → Risk: HIGH, Action: BLOCK (0.849 ≥ 0.85)
 - Probability 0.60 → Risk: MEDIUM, Action: REVIEW (0.536 ≤ 0.60 < 0.686)
 - Probability 0.30 → Risk: LOW, Action: ALLOW (0.30 < 0.536)
@@ -424,9 +515,11 @@ The system uses a two-tier decision framework:
 > **Note**: The default threshold (0.536) is optimized for the demo dataset using PR curve analysis (F1-optimized). Production deployments should re-evaluate thresholds based on your specific data and business requirements (precision vs recall trade-offs).
 
 ### 2. Batch Processing
+
 Upload CSV files for bulk scoring (optimized with joblib parallelization).
 
 ### 3. Model Info Endpoint
+
 ```bash
 curl http://localhost:8000/model-info
 ```
@@ -436,6 +529,7 @@ curl http://localhost:8000/model-info
 - **React Console:** http://localhost:5173
 
 ### 5. Observability (Quick)
+
 - **Metrics (Prometheus):** curl http://localhost:8000/metrics
 - **Health:** curl http://localhost:8000/health (includes service_degraded)
 - **Logging:** JSON logs with correlation IDs
@@ -460,6 +554,7 @@ See [.github/workflows/README.md](.github/workflows/README.md) for details.
 ### Initial Setup (One-Time)
 
 1. **Install dependencies:**
+
    ```bash
    # Backend
    pip install -r requirements-dev.txt
@@ -469,6 +564,7 @@ See [.github/workflows/README.md](.github/workflows/README.md) for details.
    ```
 
 2. **Setup pre-commit hook (Recommended):**
+
    ```bash
    ./scripts/setup-hooks.sh
    ```
@@ -494,6 +590,7 @@ git push
 ```
 
 The pre-commit hook will:
+
 - Auto-fix formatting issues
 - Run linting checks
 - Block commits if critical issues are found
@@ -501,16 +598,19 @@ The pre-commit hook will:
 ### Manual Linting (When Needed)
 
 Run linting manually only if:
+
 - You bypassed pre-commit with `--no-verify`
 - You're debugging linting issues
 - Pre-commit hook isn't installed yet
 
 **macOS / Linux:**
+
 ```bash
 ./lint.sh
 ```
 
 **Run linting checks:**
+
 ```bash
 ./lint.sh
 ```
@@ -518,29 +618,32 @@ Run linting manually only if:
 ### Running Services Locally
 
 **Backend:**
+
 ```bash
 uvicorn api.app:app --reload
 ```
 
 **Frontend:**
+
 ```bash
 cd frontend
 npm run dev
 ```
 
 **Docker (Both Services):**
+
 ```bash
 docker compose up --build
 ```
 
 ### Check Execution Matrix
 
-| Check Type | When | Duration | Auto-Fix | Blocks Commit |
-|------------|------|----------|----------|---------------|
-| IDE Linting | On save | <1s | ✓ | ✗ |
-| Pre-commit Hook | On commit | 5-10s | ✓ | ✓ |
-| Manual lint.sh | On demand | 5-10s | ✓ | ✗ |
-| CI/CD Pipeline | On push/PR | 2-5min | ✗ | ✓ |
+| Check Type      | When       | Duration | Auto-Fix | Blocks Commit |
+| --------------- | ---------- | -------- | -------- | ------------- |
+| IDE Linting     | On save    | <1s      | ✓        | ✗             |
+| Pre-commit Hook | On commit  | 5-10s    | ✓        | ✓             |
+| Manual lint.sh  | On demand  | 5-10s    | ✓        | ✗             |
+| CI/CD Pipeline  | On push/PR | 2-5min   | ✗        | ✓             |
 
 **Best Practice:** Install the pre-commit hook once, then just write code and commit normally. The hook catches issues automatically before they reach CI/CD.
 

@@ -1,4 +1,4 @@
-import { AppBar, Container, Typography, Chip, Stack } from '@mui/material'
+import { AppBar, Container, Typography, Chip, Stack } from "@mui/material";
 
 export function Header() {
   return (
@@ -15,5 +15,5 @@ export function Header() {
         </Typography>
       </Container>
     </AppBar>
-  )
+  );
 }

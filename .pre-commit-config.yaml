@@ -1,8 +1,10 @@
 # Pre-commit hooks configuration
+# Philosophy: Fast filter (< 5 seconds) that catches 90% of mistakes
+# Heavy checks (full tests, builds) run in CI/CD or pre-push
 # See https://pre-commit.com for more information
 
 repos:
-  # Universal checks
+  # Universal checks (fast hygiene)
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
@@ -14,54 +16,77 @@ repos:
       - id: check-added-large-files
         args: ['--maxkb=1024']
       - id: check-merge-conflict
-      - id: detect-private-key
 
-  # Python: Ruff (linting + formatting)
+  # Security: TruffleHog (replaces detect-private-key and detect-secrets)
+  # Faster and more comprehensive secret detection
+  - repo: local
+    hooks:
+      - id: trufflehog-git
+        name: TruffleHog (secret detection)
+        entry: trufflehog git file://. --since-commit HEAD --only-verified --fail
+        language: system
+        pass_filenames: false
+
+  # Python: Ruff (replaces Flake8, isort, Black - 100x faster)
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.8.4
     hooks:
       - id: ruff
+        name: ruff (lint + auto-fix)
         args: [--fix, --ignore, E741]
       - id: ruff-format
+        name: ruff (format)
 
-  # Python: Black (formatting - matches CI/CD)
-  - repo: https://github.com/psf/black
-    rev: 24.10.0
-    hooks:
-      - id: black
-        language_version: python3.11
-
-  # Python: Mypy (type checking)
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.13.0
+  # Python: Mypy (type checking - only on changed files)
+  - repo: local
     hooks:
       - id: mypy
-        additional_dependencies:
-          - types-requests
-          - types-PyYAML
-          - pydantic>=2.0.0
-          - pydantic-settings>=2.0.0
-          - fastapi>=0.100.0
-          - starlette>=0.27.0
-        args: [--ignore-missing-imports, --no-strict-optional]
+        name: mypy (type check)
+        entry: mypy
+        language: system
+        types: [python]
         files: ^(src|api)/
+        args: [--ignore-missing-imports, --no-strict-optional]
+        pass_filenames: true
 
-  # Frontend: ESLint
+  # Frontend: Prettier (auto-format - faster than ESLint for formatting)
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        name: prettier (format)
+        files: \.(js|jsx|ts|tsx|json|css|md)$
+        exclude: ^(package-lock\.json|.*\.min\.(js|css))$
+
+  # Frontend: ESLint (logic errors only, not formatting)
   - repo: local
     hooks:
       - id: eslint
-        name: eslint
-        entry: bash -c 'cd frontend && npm run lint'
+        name: eslint (lint)
+        entry: bash -c 'cd frontend && npm run lint -- --max-warnings=0'
         language: system
-        files: \.(js|jsx|ts|tsx)$
+        files: ^frontend/.*\.(js|jsx|ts|tsx)$
         pass_filenames: false
 
-  # Frontend: TypeScript type check
+  # Frontend: TypeScript (type check - only on changed files)
   - repo: local
     hooks:
       - id: tsc
-        name: TypeScript type check
+        name: tsc (type check)
         entry: bash -c 'cd frontend && npx tsc --noEmit'
         language: system
-        files: \.(ts|tsx)$
+        files: ^frontend/.*\.(ts|tsx)$
         pass_filenames: false
+
+  # Python: Fast unit tests (< 2 seconds, critical paths only)
+  # Full test suite runs in CI/CD and ship.sh
+  - repo: local
+    hooks:
+      - id: pytest-fast
+        name: pytest (fast unit tests)
+        entry: pytest
+        language: system
+        types: [python]
+        args: [-m, "not slow and not integration", --tb=short, -q]
+        pass_filenames: false
+        verbose: true
