@@ -44,8 +44,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.state.rate_limiter = RateLimiter(
         settings.rate_limit_max, settings.rate_limit_window
     )
-    # Strict rate limiter for authentication failures (5 attempts per minute)
-    app.state.auth_rate_limiter = RateLimiter(5, 60)
+    # Strict rate limiter for authentication failures
+    app.state.auth_rate_limiter = RateLimiter(
+        settings.auth_rate_limit_max, settings.auth_rate_limit_window
+    )
     app.state.breaker = (
         CircuitBreaker(
             settings.breaker_failure_threshold,

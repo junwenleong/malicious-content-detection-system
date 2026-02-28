@@ -3,6 +3,7 @@
 import os
 import sys
 import uuid
+from typing import Generator
 
 import pytest
 
@@ -25,7 +26,7 @@ def setup_test_api_keys() -> None:
 
 
 @pytest.fixture(autouse=True)
-def reset_rate_limiter() -> None:
+def reset_rate_limiter() -> Generator[None, None, None]:
     """Reset rate limiter between tests to avoid cross-test contamination."""
     yield
     # Clear rate limiter after each test

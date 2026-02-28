@@ -58,6 +58,19 @@ class Settings(BaseSettings):
     breaker_failure_threshold: int = Field(default=5, ge=1)
     breaker_cooldown_seconds: int = Field(default=30, ge=1)
 
+    # Cache Configuration
+    prediction_cache_size: int = Field(
+        default=10000, ge=100, description="LRU cache size for predictions"
+    )
+
+    # Auth Rate Limiting
+    auth_rate_limit_max: int = Field(
+        default=5, ge=1, description="Max auth attempts per window"
+    )
+    auth_rate_limit_window: int = Field(
+        default=60, ge=1, description="Auth rate limit window in seconds"
+    )
+
     @model_validator(mode="after")
     def validate_security_settings(self) -> "Settings":
         """Validate security configuration and enforce best practices.

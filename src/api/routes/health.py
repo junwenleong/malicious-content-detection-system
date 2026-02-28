@@ -2,7 +2,7 @@ import time
 from typing import Any, Dict
 from fastapi import APIRouter, Request, Response, status
 from src.config import settings
-from src.inference.predictor import Predictor
+from src.inference.base import BasePredictor
 from src.utils.circuit_breaker import CircuitBreaker
 
 router = APIRouter()
@@ -10,7 +10,12 @@ router = APIRouter()
 
 @router.get("/health")
 def health(request: Request, response: Response) -> Dict[str, Any]:
-    predictor: Predictor | None = getattr(request.app.state, "predictor", None)
+    """Health check endpoint with model and circuit breaker status.
+
+    Returns:
+        Health status including model availability and circuit breaker state
+    """
+    predictor: BasePredictor | None = getattr(request.app.state, "predictor", None)
     breaker: CircuitBreaker | None = getattr(request.app.state, "breaker", None)
 
     is_healthy = predictor is not None
@@ -45,7 +50,7 @@ def health(request: Request, response: Response) -> Dict[str, Any]:
 @router.get("/model-info")
 def model_info(request: Request) -> Dict[str, Any]:
     """Get model configuration and cache performance statistics."""
-    predictor: Predictor | None = getattr(request.app.state, "predictor", None)
+    predictor: BasePredictor | None = getattr(request.app.state, "predictor", None)
     config_threshold = None
     positive_class = None
     cache_stats = {}

@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import datetime
 import threading
-from typing import Dict, List
+from typing import Dict
 from prometheus_client import Counter, Histogram
 
 # Global Prometheus Metrics
@@ -27,17 +27,6 @@ class Metrics:
             self.predictions_by_class[label] += 1
             self.total_latency += latency
         PREDICTION_COUNT.labels(label=label).inc()
-        PREDICTION_LATENCY.observe(latency)
-
-    def record_batch(self, labels: List[str], latency: float) -> None:
-        with self._lock:
-            self.total_requests += 1
-            self.total_predictions += len(labels)
-            for label in labels:
-                self.predictions_by_class[label] += 1
-            self.total_latency += latency
-        for label in labels:
-            PREDICTION_COUNT.labels(label=label).inc()
         PREDICTION_LATENCY.observe(latency)
 
     def record_error(self) -> None:

@@ -19,15 +19,17 @@ build/
 .env.*
 !.env.production.example
 !.env.development.example
+!.env.staging.example
 
 # Jupyter
 .ipynb_checkpoints/
 .jupyter/
 
-# Node / Frontend (root patterns)
+# Node / Frontend
 node_modules/
 dist/
 test-results/
+package-lock.json
 
 # Data
 data/raw/*
@@ -58,6 +60,7 @@ test_batch_results.csv
 test-results/
 frontend/test-results/
 playwright-report/
+playwright-output/
 *.png
 *.jpg
 *.jpeg
@@ -89,11 +92,16 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
-.trae/
-.traerules
-.kiro/
 *.swp
 *.swo
 
 # Pre-commit
 .pre-commit/
+
+# Temporary documentation (don't commit these)
+docs/*_SUMMARY.md
+docs/*_GUIDE.md
+docs/*_FIXES.md
+
+# Secrets baseline (no longer used with TruffleHog)
+.secrets.baseline

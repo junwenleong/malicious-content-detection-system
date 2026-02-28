@@ -14,12 +14,15 @@ from src.config import settings
 
 
 class Predictor(BasePredictor):
-    def __init__(self, model_path: str, config_path: str) -> None:
+    def __init__(
+        self, model_path: str, config_path: str, cache_size: int | None = None
+    ) -> None:
         """Initialize predictor with model loading and cache setup.
 
         Args:
             model_path: Path to trained model file (.pkl)
             config_path: Path to model configuration file (.pkl)
+            cache_size: LRU cache size (defaults to settings value)
 
         Raises:
             FileNotFoundError: If model files don't exist
@@ -40,7 +43,7 @@ class Predictor(BasePredictor):
         # LRU cache for repeated queries (common in abuse campaigns)
         # Size limit prevents memory leaks from unique adversarial inputs
         self._cache: OrderedDict[str, float] = OrderedDict()
-        self._cache_size = 10000  # ~1MB memory for typical text hashes
+        self._cache_size = cache_size or settings.prediction_cache_size
         self._lock = threading.Lock()
 
         # Cache statistics for monitoring
