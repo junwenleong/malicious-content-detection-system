@@ -4,15 +4,18 @@
 
 This document clarifies when to run quality checks and how to avoid duplication.
 
+**Philosophy**: Pre-commit hooks are a "fast filter" (< 5 seconds) that catch 90% of mistakes in 10% of the time. Heavy checks run in CI/CD or ship.sh.
+
 ## Check Types Comparison
 
 ### lint.sh (Local Development)
-- **Purpose**: Fast local validation before commit
+- **Purpose**: Fast local validation before commit (if not using pre-commit hook)
 - **Runs**:
   - `ruff check --fix` (linting with auto-fix)
-  - `black` (code formatting - matches CI/CD)
+  - `ruff format` (code formatting - replaces black)
   - `mypy` (type checking)
   - `npm run lint` (ESLint for frontend)
+- **Note**: Redundant if pre-commit hook is installed
 
 ### CI/CD Pipeline (.github/workflows/ci.yml)
 - **Purpose**: Comprehensive validation on push/PR
@@ -28,9 +31,9 @@ This document clarifies when to run quality checks and how to avoid duplication.
   - Security scanning (Trivy)
 
 ### Pre-commit Hook (Recommended)
-- **Purpose**: Automatic validation on every commit
+- **Purpose**: Automatic validation on every commit (< 5 seconds)
 - **Framework**: Industry-standard `pre-commit` framework
-- **Runs**: Same checks as `lint.sh` plus universal checks
+- **Runs**: Fast checks only (changed files where possible)
 - **Benefit**: Catches issues before they reach CI/CD
 
 **What it checks:**
@@ -38,9 +41,10 @@ This document clarifies when to run quality checks and how to avoid duplication.
 - YAML/JSON syntax validation
 - Large file detection (>1MB)
 - Merge conflict detection
-- Private key detection
-- Python: ruff (lint + format), black, mypy
-- Frontend: ESLint, TypeScript
+- Secret detection (TruffleHog - replaces detect-private-key)
+- Python: ruff (lint + format), mypy (changed files only)
+- Frontend: Prettier (format), ESLint (lint), TypeScript (changed files only)
+- Fast unit tests only (< 2 seconds, marked with `@pytest.mark.unit` or no marker)
 
 ## When to Run What
 
@@ -183,9 +187,15 @@ git commit  # Pre-commit catches issues in 5 seconds
 | Check Type | When | Duration | Auto-Fix | Blocks Commit | Runs Tests |
 |------------|------|----------|----------|---------------|------------|
 | IDE Linting | On save | <1s | ✓ | ✗ | ✗ |
-| Pre-commit Hook | On commit | 5-10s | ✓ | ✓ | ✗ |
+| Pre-commit Hook | On commit | <5s | ✓ | ✓ | Fast only |
+| ship.sh | Manual | ~10s | ✓ | ✓ | Full suite |
 | Manual lint.sh | On demand | 5-10s | ✓ | ✗ | ✗ |
-| CI/CD Pipeline | On push/PR | 2-5min | ✗ | ✓ | ✓ |
+| CI/CD Pipeline | On push/PR | 2-5min | ✗ | ✓ | Full + coverage |
+
+**Key Changes:**
+- Pre-commit now runs fast unit tests only (< 2s)
+- ship.sh runs full test suite before commit
+- Only changed files checked where possible (Mypy, TypeScript)
 
 ## Troubleshooting
 
@@ -217,8 +227,88 @@ git commit --no-verify -m "Emergency hotfix"
 # Then fix in next commit!
 ```
 
+## ship.sh Workflow
+
+The `ship.sh` script provides a complete validation and deployment workflow:
+
+```bash
+./ship.sh "Your commit message"
+```
+
+**What it does:**
+1. Runs **full test suite** (pytest tests/)
+2. Auto-formats frontend with Prettier
+3. Stages all changes (git add .)
+4. Commits with GPG signature (git commit -S)
+   - Pre-commit hook runs here (fast checks only)
+5. Pushes to remote (git push)
+
+**Key insight**: ship.sh runs full tests BEFORE committing, so pre-commit hook only needs fast checks.
+
+## Test Markers
+
+Control when tests run using pytest markers:
+
+```python
+import pytest
+
+# Fast unit test - runs in pre-commit
+def test_basic():
+    assert True
+
+# Slow test - skipped in pre-commit, runs in ship.sh and CI/CD
+@pytest.mark.slow
+def test_integration():
+    time.sleep(2)
+    assert True
+
+# Integration test - skipped in pre-commit
+@pytest.mark.integration
+def test_api():
+    response = client.get("/v1/predict")
+    assert response.status_code == 200
+```
+
+**Run fast tests only** (what pre-commit does):
+```bash
+pytest -m "not slow and not integration"
+```
+
+**Run all tests** (what ship.sh and CI/CD do):
+```bash
+pytest tests/
+```
+
+## TruffleHog Secret Detection
+
+Replaced `detect-private-key` and `detect-secrets` with TruffleHog:
+
+**Installation:**
+```bash
+brew install trufflesecurity/trufflehog/trufflehog
+```
+
+**Benefits:**
+- Faster (scans only staged changes)
+- More accurate (700+ credential types)
+- No infinite loops (no baseline file needed)
+- Fewer false positives (--only-verified flag)
+
+**Handling false positives:**
+```bash
+# Add to ignore file
+echo "path/to/file:line_number" >> .trufflehogignore
+```
+
 ## Summary
 
 **Best Practice**: Install pre-commit hook once, then just write code and commit normally. The hook catches issues automatically, and CI/CD provides comprehensive validation.
 
-**Key Principle**: Run checks once per commit (automatically via pre-commit), not manually before every commit.
+**Key Principles:**
+1. Pre-commit: Fast filter (< 5s) catches 90% of mistakes
+2. ship.sh: Full validation before push
+3. CI/CD: Comprehensive validation with coverage and security scans
+4. Only check changed files where possible (Mypy, TypeScript)
+5. Mark slow tests so they don't block commits
+
+**See also:** `docs/PRE_COMMIT_GUIDE.md` for detailed setup and troubleshooting.

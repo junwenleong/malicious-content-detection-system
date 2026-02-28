@@ -72,6 +72,8 @@ def test_input_normalization() -> None:
         predictor._lock = threading.Lock()
         predictor._cache = OrderedDict()
         predictor._cache_size = 1000
+        predictor._cache_hits = 0
+        predictor._cache_misses = 0
         predictor.model = MagicMock()
         predictor.model.predict_proba.return_value = np.array([[0.9, 0.1]])
         predictor.pos_index = 1

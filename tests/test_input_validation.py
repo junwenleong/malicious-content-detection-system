@@ -25,8 +25,8 @@ class TestInputValidation:
             json={"texts": ["   ", "\t\n"]},
             headers={"x-api-key": "dev-secret-key-123"},
         )
-        assert response.status_code == 400
-        assert "empty" in response.json()["detail"].lower()
+        assert response.status_code == 422  # Pydantic validation error
+        assert "empty" in response.json()["detail"][0]["msg"].lower()
 
     def test_oversized_text_rejected(self) -> None:
         """Verify text exceeding max length is rejected."""
@@ -88,4 +88,4 @@ class TestInputValidation:
             json={"texts": ["valid text", "   ", "another valid"]},
             headers={"x-api-key": "dev-secret-key-123"},
         )
-        assert response.status_code == 400
+        assert response.status_code == 422  # Pydantic validation error

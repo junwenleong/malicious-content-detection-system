@@ -5,6 +5,7 @@
 This document covers production deployment patterns for the system.
 
 **Deployment targets:**
+
 - Local development (testing)
 - Docker container (portable deployment)
 - Cloud platforms (AWS/GCP/Azure)
@@ -52,6 +53,7 @@ ls -lh models/
 ```
 
 If missing, train the model:
+
 ```bash
 jupyter notebook notebooks/malicious_content_detection_analysis.ipynb
 # Run all cells
@@ -64,6 +66,7 @@ uvicorn api.app:app --host 0.0.0.0 --port 8000 --workers 1
 ```
 
 **Development mode** (auto-reload):
+
 ```bash
 uvicorn api.app:app --reload --port 8000
 ```
@@ -214,29 +217,29 @@ spec:
         app: malicious-detector
     spec:
       containers:
-      - name: api
-        image: malicious-content-detector:latest
-        ports:
-        - containerPort: 8000
-        resources:
-          requests:
-            memory: "2Gi"
-            cpu: "1000m"
-          limits:
-            memory: "4Gi"
-            cpu: "2000m"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 8000
-          initialDelaySeconds: 10
-          periodSeconds: 30
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 8000
-          initialDelaySeconds: 5
-          periodSeconds: 10
+        - name: api
+          image: malicious-content-detector:latest
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "1000m"
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
 ```
 
 ### 2. Service Manifest
@@ -251,9 +254,9 @@ spec:
   selector:
     app: malicious-detector
   ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 8000
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
   type: LoadBalancer
 ```
 
@@ -278,16 +281,19 @@ kubectl logs -l app=malicious-detector --tail=100 -f
 ### Concurrency Settings
 
 **Single-worker** (default):
+
 ```bash
 uvicorn api.app:app --workers 1
 ```
 
 **Multi-worker** (CPU-bound tasks):
+
 ```bash
 uvicorn api.app:app --workers 4
 ```
 
 **With Gunicorn** (production):
+
 ```bash
 gunicorn api.app:app \
   --workers 4 \
@@ -300,11 +306,11 @@ gunicorn api.app:app \
 
 ### Resource Allocation
 
-| Workload | CPU | Memory | Workers |
-|----------|-----|--------|---------|
-| Light (<10 req/s) | 1 core | 2GB | 1-2 |
-| Medium (10-50 req/s) | 2 cores | 4GB | 2-4 |
-| Heavy (50-200 req/s) | 4 cores | 8GB | 4-8 |
+| Workload             | CPU     | Memory | Workers |
+| -------------------- | ------- | ------ | ------- |
+| Light (<10 req/s)    | 1 core  | 2GB    | 1-2     |
+| Medium (10-50 req/s) | 2 cores | 4GB    | 2-4     |
+| Heavy (50-200 req/s) | 4 cores | 8GB    | 4-8     |
 
 ---
 
@@ -317,6 +323,7 @@ curl http://localhost:8000/metrics
 ```
 
 Returns:
+
 - `uptime_seconds`
 - `total_requests`
 - `total_predictions`
@@ -328,11 +335,13 @@ Returns:
 ### Prometheus Integration
 
 Prometheus metrics are exposed at `/metrics`:
+
 ```bash
 curl http://localhost:8000/metrics
 ```
 
 Available metrics:
+
 - `http_requests_total` — Total HTTP requests by method, endpoint, status
 - `http_request_duration_seconds` — HTTP request latency histogram
 - `prediction_total` — Total predictions by label
@@ -342,6 +351,7 @@ Available metrics:
 ### Logging
 
 Structured JSON logging:
+
 ```bash
 # Configure in app.py
 logging.basicConfig(
@@ -351,6 +361,7 @@ logging.basicConfig(
 ```
 
 Aggregate with:
+
 - **CloudWatch Logs** (AWS)
 - **Cloud Logging** (GCP)
 - **Azure Monitor** (Azure)
@@ -363,10 +374,12 @@ Aggregate with:
 ### 1. Rate Limiting
 
 Configured via environment variables:
+
 - `RATE_LIMIT_MAX`: Maximum requests per window (default: 100)
 - `RATE_LIMIT_WINDOW`: Window duration in seconds (default: 60)
 
 **Production alternative:**
+
 - Redis-based distributed rate limiting
 - API Gateway rate limiting (AWS API Gateway, GCP API Gateway)
 
@@ -379,6 +392,7 @@ Configured via environment variables:
 ### 3. Authentication (Implemented)
 
 API key authentication is now enforced with rate limiting:
+
 - **Strict API Key Validation**: Requests must include `x-api-key` header matching one of the keys in `API_KEYS` (or `API_KEY`).
 - **Secret Rotation**: Use `API_KEYS='["key1","key2"]'` to support multiple keys during rotation.
 - **Complexity Requirements**: HMAC secrets must be at least 32 characters long.
@@ -388,11 +402,13 @@ API key authentication is now enforced with rate limiting:
 ### 4. HTTPS/TLS
 
 **Development:**
+
 ```bash
 uvicorn api.app:app --ssl-keyfile=./key.pem --ssl-certfile=./cert.pem
 ```
 
 **Production:**
+
 - Use ALB/Load Balancer for TLS termination
 - Let's Encrypt for free certificates
 - Cloudflare for CDN + DDoS protection
@@ -406,11 +422,13 @@ uvicorn api.app:app --ssl-keyfile=./key.pem --ssl-certfile=./cert.pem
 #### 1. Model Files Not Found
 
 **Error:**
+
 ```
 FileNotFoundError: Model files not found. Train the model first.
 ```
 
 **Fix:**
+
 ```bash
 # Ensure Git LFS is installed
 git lfs install
@@ -423,11 +441,13 @@ jupyter notebook notebooks/malicious_content_detection_analysis.ipynb
 #### 2. Out of Memory
 
 **Error:**
+
 ```
 MemoryError: Unable to allocate array
 ```
 
 **Fix:**
+
 ```bash
 # Increase container memory
 docker run -m 4g -p 8000:8000 malicious-content-detector
@@ -438,11 +458,13 @@ docker run -m 4g -p 8000:8000 malicious-content-detector
 #### 3. Rate Limit Exceeded
 
 **Error:**
+
 ```
 429 Rate limit exceeded
 ```
 
 **Fix:**
+
 ```bash
 # Adjust rate limiter config in api/app.py
 rate_limiter = RateLimiter(max_requests=500, window_seconds=60)
@@ -455,6 +477,7 @@ rate_limiter = RateLimiter(max_requests=500, window_seconds=60)
 ### Zero-Downtime Updates
 
 **Strategy 1: Blue/Green Deployment**
+
 ```bash
 # Deploy new version with different tag
 docker run -d -p 8001:8000 malicious-detector:v2
@@ -465,6 +488,7 @@ docker run -d -p 8001:8000 malicious-detector:v2
 ```
 
 **Strategy 2: Rolling Update (Kubernetes)**
+
 ```bash
 # Update image in deployment.yaml
 kubectl set image deployment/malicious-detector \
@@ -476,6 +500,7 @@ kubectl set image deployment/malicious-detector \
 ### Model Versioning
 
 Store models in versioned directory:
+
 ```
 models/
 ├── v1.0/
@@ -487,6 +512,7 @@ models/
 ```
 
 Load specific version:
+
 ```python
 MODEL_VERSION = os.getenv("MODEL_VERSION", "v1.0")
 MODEL_PATH = f"models/{MODEL_VERSION}/malicious_content_detector_calibrated.pkl"
@@ -498,18 +524,19 @@ MODEL_PATH = f"models/{MODEL_VERSION}/malicious_content_detector_calibrated.pkl"
 
 ### AWS (us-east-1)
 
-| Component | Type | Cost/month |
-|-----------|------|------------|
-| EC2 | t3.medium | ~$30 |
-| ALB | Standard | ~$20 |
-| Data transfer | 1TB | ~$90 |
-| **Total** | | **~$140/month** |
+| Component     | Type      | Cost/month      |
+| ------------- | --------- | --------------- |
+| EC2           | t3.medium | ~$30            |
+| ALB           | Standard  | ~$20            |
+| Data transfer | 1TB       | ~$90            |
+| **Total**     |           | **~$140/month** |
 
 ---
 
 ## Backup & Disaster Recovery
 
 ### Model Artifacts
+
 ```bash
 # Backup to S3
 aws s3 sync models/ s3://my-bucket/models/backups/$(date +%Y%m%d)/
@@ -519,11 +546,13 @@ aws s3 sync s3://my-bucket/models/backups/20250127/ models/
 ```
 
 ### Configuration
+
 ```bash
 # Version control (already in Git)
 git tag v1.0.0
 git push origin v1.0.0
 ```
 
+```
 
 ```

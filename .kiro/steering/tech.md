@@ -49,6 +49,7 @@ pre-commit run --all-files
 # Run specific hook
 pre-commit run ruff --all-files
 pre-commit run mypy --all-files
+pre-commit run pytest-fast --all-files
 
 # Update hooks to latest versions
 pre-commit autoupdate
@@ -56,6 +57,24 @@ pre-commit autoupdate
 # Bypass hooks (emergency only)
 git commit --no-verify -m "Emergency fix"
 ```
+
+**What runs in pre-commit:**
+- Fast checks only (< 5 seconds total)
+- TruffleHog secret detection (replaces detect-private-key)
+- Ruff lint + format (replaces Black)
+- Mypy type check (changed files only)
+- Prettier format (frontend)
+- ESLint lint (frontend)
+- TypeScript type check (changed files only)
+- Fast unit tests only (marked with `@pytest.mark.unit` or no marker)
+
+**What runs in ship.sh:**
+- Full test suite (including slow and integration tests)
+- All pre-commit checks
+- GPG-signed commit
+- Push to remote
+
+**See:** `docs/PRE_COMMIT_GUIDE.md` for detailed setup
 
 ### Backend Development
 ```bash

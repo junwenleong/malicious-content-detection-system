@@ -13,39 +13,46 @@ The Malicious Content Detection System is an internal API service that classifie
 ## Attack Vectors
 
 ### 1. Brute-Force API Key Guessing
+
 - **Mitigation**: Auth rate limiter (5 attempts/minute per IP), API key complexity requirements.
 - **Residual Risk**: Low. Attacker would need ~10^18 attempts for a 32-char key.
 
 ### 2. Denial of Service (DoS)
+
 - **Mitigation**: Rate limiting (configurable per-IP), max text length (10k chars), max batch size (1000 items), max CSV size (10MB), circuit breaker.
 - **Residual Risk**: Medium. Single-process architecture limits throughput. See SCALING_STRATEGY.md.
 
 ### 3. Model Evasion / Adversarial Input
+
 - **Mitigation**: Unicode NFKC normalization strips homoglyphs and control characters. TF-IDF features are relatively robust to minor perturbations.
 - **Residual Risk**: High. Sophisticated adversaries can craft inputs that evade detection. Continuous retraining and monitoring required.
 
 ### 4. Model Tampering
+
 - **Mitigation**: SHA256 checksum verification at startup. Read-only filesystem in production Docker.
 - **Residual Risk**: Low if deployment follows production hardening guidelines.
 
 ### 5. Replay Attacks
+
 - **Mitigation**: Optional HMAC signature verification with 5-minute timestamp window.
 - **Residual Risk**: Low when HMAC is enabled.
 
 ### 6. Information Leakage
+
 - **Mitigation**: No raw text in logs (hashed), no internal paths in API responses, generic error messages, no stack traces exposed.
 - **Residual Risk**: Low.
 
 ### 7. Prompt Injection via Batch CSV
+
 - **Mitigation**: MIME type validation, file extension check, content-length limit, CSV column validation.
 - **Residual Risk**: Low. CSV parsing is standard library; no code execution from CSV content.
 
 ## Failure Impact Analysis
 
-| Failure Mode | Impact | Severity | Recovery |
-|---|---|---|---|
-| Model fails to load | Service refuses to start | High | Fix model files, redeploy |
-| Inference timeout | 503 returned, circuit breaker opens | Medium | Auto-recovery after cooldown |
-| Rate limit exhaustion | 429 returned with Retry-After | Low | Wait for window reset |
-| Auth compromise | Unauthorized predictions | High | Rotate API keys immediately |
-| Model evasion | Malicious content passes through | High | Retrain model, adjust threshold |
+| Failure Mode          | Impact                              | Severity | Recovery                        |
+| --------------------- | ----------------------------------- | -------- | ------------------------------- |
+| Model fails to load   | Service refuses to start            | High     | Fix model files, redeploy       |
+| Inference timeout     | 503 returned, circuit breaker opens | Medium   | Auto-recovery after cooldown    |
+| Rate limit exhaustion | 429 returned with Retry-After       | Low      | Wait for window reset           |
+| Auth compromise       | Unauthorized predictions            | High     | Rotate API keys immediately     |
+| Model evasion         | Malicious content passes through    | High     | Retrain model, adjust threshold |
