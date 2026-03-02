@@ -55,14 +55,30 @@ export function ConnectionPanel({
               variant="outlined"
             />
           )}
+          {healthStatus === "unknown" && (
+            <Chip
+              label="Checking..."
+              color="default"
+              size="small"
+              variant="outlined"
+            />
+          )}
         </Box>
-        <Button onClick={() => setExpanded(!expanded)} size="small">
+        <Button
+          onClick={() => setExpanded(!expanded)}
+          size="small"
+          aria-expanded={expanded}
+          aria-controls="connection-settings-panel"
+        >
           {expanded ? "Hide" : "Configure"}
         </Button>
       </Box>
 
       <Collapse in={expanded}>
         <Box
+          component="form"
+          autoComplete="off"
+          onSubmit={(e) => e.preventDefault()}
           display="grid"
           gap={2}
           gridTemplateColumns={{ xs: "1fr", md: "2fr 1fr" }}
@@ -73,6 +89,7 @@ export function ConnectionPanel({
             onChange={(event) => setApiUrl(event.target.value)}
             fullWidth
             helperText="e.g. http://localhost:8000"
+            inputProps={{ autoComplete: "off" }}
           />
           <TextField
             label="API Key"
@@ -80,7 +97,8 @@ export function ConnectionPanel({
             onChange={(event) => setApiKey(event.target.value)}
             type="password"
             fullWidth
-            helperText="Required for authentication. Default dev key: dev-secret-key-123"
+            helperText="Required for authentication. Contact your administrator for the API key."
+            inputProps={{ autoComplete: "new-password" }}
           />
         </Box>
         <Box mt={2}>

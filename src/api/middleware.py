@@ -8,6 +8,29 @@ from prometheus_client import Counter, Histogram
 
 logger = logging.getLogger("audit")
 
+# Known route prefixes for Prometheus label normalization.
+# Unknown paths are bucketed as "other" to prevent cardinality explosion.
+_KNOWN_PATHS = frozenset(
+    {
+        "/v1/predict",
+        "/v1/batch",
+        "/health",
+        "/metrics",
+        "/model-info",
+        "/",
+        "/docs",
+        "/openapi.json",
+    }
+)
+
+
+def _normalize_path(path: str) -> str:
+    """Normalize request path to a known route or 'other'."""
+    if path in _KNOWN_PATHS:
+        return path
+    return "other"
+
+
 REQUEST_COUNT = Counter(
     "http_requests_total", "Total HTTP Requests", ["method", "endpoint", "status"]
 )
@@ -33,14 +56,15 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
             raise e
         finally:
             duration = time.monotonic() - start_time
+            normalized = _normalize_path(request.url.path)
             REQUEST_COUNT.labels(
                 method=request.method,
-                endpoint=request.url.path,
+                endpoint=normalized,
                 status=str(status_code),
             ).inc()
-            REQUEST_LATENCY.labels(
-                method=request.method, endpoint=request.url.path
-            ).observe(duration)
+            REQUEST_LATENCY.labels(method=request.method, endpoint=normalized).observe(
+                duration
+            )
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):

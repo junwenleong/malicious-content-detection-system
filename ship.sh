@@ -1,76 +1,183 @@
 #!/bin/bash
-set -e
+# ship.sh - Run tests, format, commit, and push
+# Usage: ./ship.sh "Your commit message here" [--fast]
+# Options:
+#   --fast    Skip slow/integration tests
 
-# Colors for output
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
+set -eE
+trap 'cleanup_on_error' ERR
 
-echo -e "${YELLOW}🚀 Starting ship process...${NC}"
+# --- Helper functions -------------------------------------------------
 
-# Check if commit message provided
-if [ -z "$1" ]; then
-    echo -e "${RED}❌ Error: Commit message required${NC}"
-    echo "Usage: ./ship.sh \"Your commit message\""
+die() {
+    echo -e "❌ $1" >&2
     exit 1
+}
+
+cleanup_on_error() {
+    echo "❌ ship.sh failed. See error above." >&2
+}
+
+# --- Argument parsing -------------------------------------------------
+
+if [ -z "$1" ]; then
+    die "Please provide a commit message.\nUsage: ./ship.sh \"feat: your message\" [--fast]"
 fi
 
 COMMIT_MSG="$1"
+FAST=false
+if [[ "$2" == "--fast" ]]; then
+    FAST=true
+fi
 
-# Step 1: Run tests
-echo -e "${YELLOW}🧪 Running tests...${NC}"
-pytest tests/ || {
-    echo -e "${RED}❌ Tests failed. Fix issues before shipping.${NC}"
-    exit 1
-}
-echo -e "${GREEN}✓ Tests passed${NC}"
+# --- Python detection -------------------------------------------------
 
-# Step 2: Auto-format frontend with Prettier
-echo -e "${YELLOW}✨ Auto-formatting frontend files with Prettier...${NC}"
-if [ -d "frontend" ]; then
-    cd frontend
-    if [ -f "package.json" ]; then
-        npm run format 2>/dev/null || npx prettier --write "src/**/*.{ts,tsx,js,jsx,json,css}" 2>/dev/null || {
-            echo -e "${YELLOW}⚠️  Prettier not configured, skipping frontend formatting${NC}"
-        }
-    fi
-    cd ..
-    echo -e "${GREEN}✓ Frontend formatted${NC}"
+if [ -f ".venv/bin/python" ]; then
+    PYTHON_CMD=".venv/bin/python"
+elif command -v python3.11 &> /dev/null; then
+    PYTHON_CMD="python3.11"
+elif command -v python3 &> /dev/null; then
+    PYTHON_CMD="python3"
 else
-    echo -e "${YELLOW}⚠️  No frontend directory found, skipping formatting${NC}"
+    die "No Python 3 found. Install Python 3.11+ or create a venv."
 fi
 
-# Step 3: Stage all changes (including formatting fixes)
-echo -e "${YELLOW}📦 Staging changes...${NC}"
-git add .
-echo -e "${GREEN}✓ Changes staged${NC}"
+# --- Warn about untracked files ---------------------------------------
 
-# Step 4: Commit with GPG signature (pre-commit hook runs here)
-echo -e "${YELLOW}📝 Committing with message: ${COMMIT_MSG}${NC}"
-if ! git commit -S -m "$COMMIT_MSG"; then
-    # Check if pre-commit made auto-fixes
-    if ! git diff --cached --quiet; then
-        echo -e "${YELLOW}⚠️  Pre-commit hooks auto-fixed some files. Re-staging...${NC}"
-        git add -u
-        echo -e "${GREEN}✓ Auto-fixes applied and staged. Committing again...${NC}"
-        git commit -S -m "$COMMIT_MSG" || {
-            echo -e "${RED}❌ Commit failed after auto-fixes. Check output above.${NC}"
-            exit 1
-        }
-    else
-        echo -e "${RED}❌ Commit failed for reasons other than auto-fixes. Check pre-commit hooks output above.${NC}"
-        exit 1
+untracked=$(git ls-files --others --exclude-standard)
+if [ -n "$untracked" ]; then
+    echo "⚠️  You have untracked files:"
+    echo "$untracked" | sed 's/^/   /'
+    read -p "Continue and include them in the commit? (y/N) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        die "Aborted by user."
     fi
 fi
-echo -e "${GREEN}✓ Committed${NC}"
 
-# Step 5: Push to remote
-echo -e "${YELLOW}🚢 Pushing to remote...${NC}"
-git push || {
-    echo -e "${RED}❌ Push failed. Check your remote configuration.${NC}"
+echo "=========================================="
+echo "🚀 Shipping code"
+echo "📝 Message: $COMMIT_MSG"
+echo "=========================================="
+
+# --- Run tests --------------------------------------------------------
+
+echo "🧪 Running tests..."
+if [ "$FAST" = true ]; then
+    echo "   (Fast mode: skipping slow and integration tests)"
+    $PYTHON_CMD -m pytest -m "not slow and not integration" -q --tb=short || die "Tests failed!"
+else
+    echo "   (Full test suite)"
+    $PYTHON_CMD -m pytest -q --tb=short || die "Tests failed!"
+fi
+echo "✅ Tests passed!"
+
+# --- Format frontend --------------------------------------------------
+
+echo "🎨 Formatting code with Prettier..."
+if command -v npx &> /dev/null && [ -d "frontend" ]; then
+    (cd frontend && npx prettier --write "**/*.{js,jsx,ts,tsx,json,css,scss,md,yaml,yml}" --ignore-unknown) 2>/dev/null || true
+fi
+
+# --- Stage and commit -------------------------------------------------
+
+echo "➕ Adding files..."
+git add .
+
+echo "🔏 Committing with GPG signature..."
+commit_failed() {
+    # Diagnose the actual reason for failure
+    echo "❌ Commit failed. Diagnosing..." >&2
+
+    # Check if pre-commit hook blocked it (exit code 1 with hook output)
+    if [ -f ".git/hooks/pre-commit" ]; then
+        echo "   ↳ Pre-commit hooks may have blocked the commit. Check output above." >&2
+    fi
+
+    # Check GPG key configuration
+    local signing_key
+    signing_key=$(git config user.signingkey 2>/dev/null || true)
+    if [ -z "$signing_key" ]; then
+        echo "   ↳ No GPG signing key configured. Run: git config user.signingkey <key-id>" >&2
+    else
+        # Check if the key is actually available in the keyring
+        if ! gpg --list-secret-keys "$signing_key" >/dev/null 2>&1; then
+            echo "   ↳ GPG key '$signing_key' not found in keyring. Check: gpg --list-secret-keys" >&2
+        fi
+    fi
+
     exit 1
 }
-echo -e "${GREEN}✓ Pushed${NC}"
 
-echo -e "${GREEN}🎉 Ship complete!${NC}"
+if ! git commit -S -m "$COMMIT_MSG"; then
+    # Pre-commit hooks may have auto-fixed files (they land as unstaged)
+    if ! git diff --quiet; then
+        echo "⚠️  Pre-commit hooks auto-fixed some files. Re-staging..."
+        git add -u
+        echo "✅ Auto-fixes staged. Committing again..."
+        git commit -S -m "$COMMIT_MSG" || commit_failed
+    # Nothing to commit (working tree clean after auto-fixes applied everything)
+    elif git diff --cached --quiet; then
+        echo "ℹ️  No changes to commit (working tree clean after auto-fixes)."
+    else
+        commit_failed
+    fi
+fi
+
+CURRENT_BRANCH=$(git branch --show-current)
+
+# --- Sync with remote -------------------------------------------------
+
+echo "🔄 Checking remote status..."
+git fetch origin "$CURRENT_BRANCH" 2>/dev/null || true
+
+if git rev-parse --verify origin/"$CURRENT_BRANCH" >/dev/null 2>&1; then
+    BEHIND=$(git rev-list --count HEAD..origin/"$CURRENT_BRANCH" 2>/dev/null || echo 0)
+    if [ "$BEHIND" -gt 0 ]; then
+        echo "ℹ️  Branch is behind origin/$CURRENT_BRANCH by $BEHIND commit(s)."
+        echo "⬇️  Attempting fast-forward pull..."
+        if git pull --ff-only origin "$CURRENT_BRANCH"; then
+            echo "✅ Pull successful. Re-running tests to verify..."
+            if [ "$FAST" = true ]; then
+                $PYTHON_CMD -m pytest -m "not slow and not integration" -q --tb=short || die "Tests failed after pull!"
+            else
+                $PYTHON_CMD -m pytest -q --tb=short || die "Tests failed after pull!"
+            fi
+            echo "✅ Tests still pass."
+        else
+            die "Fast-forward pull failed. Please rebase manually:\n   git pull --rebase origin $CURRENT_BRANCH"
+        fi
+    else
+        echo "✅ Branch is up to date."
+    fi
+else
+    echo "🆕 No remote branch yet – will be created on push."
+fi
+
+# --- Push -------------------------------------------------------------
+
+echo "⬆️  Pushing to remote (branch: $CURRENT_BRANCH)..."
+COMMIT_SHA=$(git rev-parse HEAD)
+
+if ! git push origin "$CURRENT_BRANCH"; then
+    echo ""
+    echo "⚠️  Push failed (pre-push hooks or remote rejection)."
+    read -p "Undo the last commit and keep changes staged? (y/N) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        # Only revert if HEAD is still the commit we just made
+        if [ "$(git rev-parse HEAD)" = "$COMMIT_SHA" ]; then
+            git reset --soft HEAD~1
+            echo "✅ Commit undone. Changes are still staged. Fix the errors and run ship.sh again."
+        else
+            echo "⚠️  HEAD has changed since commit — skipping revert to avoid data loss."
+            echo "   Manually run: git reset --soft $COMMIT_SHA~1"
+        fi
+    else
+        echo "ℹ️  Commit remains. You can amend it later with 'git commit --amend'."
+    fi
+    exit 1
+fi
+
+echo "✅ Done! GitHub Actions will run the full CI pipeline."
+echo "=========================================="

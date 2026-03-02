@@ -48,9 +48,32 @@
 - Human oversight: route high‑risk cases for review; do not block without appeal paths in high‑impact scenarios.
 - Privacy: do not log raw sensitive content at scale; use hashing/sampling where possible. Integrate with your data retention and deletion policies.
 
+## Bias Evaluation Methodology
+
+Before production deployment, evaluate the model against the following dimensions:
+
+- **Language bias:** The training dataset is primarily English. Evaluate performance on non-English inputs and document degradation. Consider separate models for other languages.
+- **Domain bias:** The dataset emphasizes jailbreak/prompt injection patterns. Evaluate false-negative rates on direct harm queries, hate speech, and other harm categories relevant to your deployment context.
+- **Length bias:** Evaluate performance across short (<20 tokens), medium, and long (>200 tokens) inputs. TF-IDF features may underperform on very short texts.
+- **Adversarial robustness:** Test against Unicode homoglyph substitutions, leetspeak, and whitespace injection. NFKC normalization mitigates many but not all evasion techniques.
+- **Threshold sensitivity:** Document precision/recall trade-offs at ±0.05 around the chosen threshold. Ensure the threshold is re-evaluated on your organization's data before deployment.
+
+Document findings in `docs/FAIRNESS_AUDIT_RESULTS.md` before production deployment.
+
 ## Failure Modes
 
 - Data mismatch: if the production data distribution differs from the demo dataset, recall may drop for certain categories (e.g., direct harm questions vs. jailbreak prompts). Retrain with appropriate corpora.
 - Adversarial input: prompt injection patterns evolve. Track false negatives and iterate on training data and features (e.g., n‑grams, character patterns).
 - Operational failures: if the model or downstream dependencies fail, the circuit breaker opens to protect the service; rate limiting prevents brute‑force auth attempts. Health and metrics endpoints allow monitoring and fast rollback.
 - Confidence miscalibration: thresholds may need re‑tuning when the model or dataset changes. Re‑evaluate calibration and decision thresholds during releases.
+- Fallback state: when the primary model is unavailable, the `FallbackPredictor` returns `UNKNOWN` labels with `is_fallback: true` in the API response. Downstream consumers must handle this state explicitly — do not treat `UNKNOWN` as `BENIGN`.
+
+## Human-in-the-Loop Escalation
+
+The `REVIEW` recommended action signals a prediction in the uncertain zone near the decision threshold. Downstream systems should:
+
+1. Route `REVIEW` items to a human review queue rather than auto-allowing or auto-blocking.
+2. Treat `is_fallback: true` responses as `REVIEW` regardless of label — the primary model was unavailable.
+3. Establish SLAs for human review turnaround (e.g., 4 hours for `REVIEW`, immediate for `BLOCK`).
+4. Feed human review outcomes back into the training pipeline to improve the model over time.
+5. Document the escalation path in your organization's operational runbook (`docs/OPERATIONS.md`).

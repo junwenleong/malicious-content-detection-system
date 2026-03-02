@@ -2,8 +2,12 @@
 
 from fastapi.testclient import TestClient
 from api.app import app
+from src.config import settings
 
 client = TestClient(app)
+
+# Use the configured API key, falling back to the dev default
+_API_KEY = settings.api_keys[0] if settings.api_keys else "dev-secret-key-123"
 
 
 class TestInputValidation:
@@ -14,7 +18,7 @@ class TestInputValidation:
         response = client.post(
             "/v1/predict",
             json={"texts": []},
-            headers={"x-api-key": "dev-secret-key-123"},
+            headers={"x-api-key": _API_KEY},
         )
         assert response.status_code == 422  # Pydantic validation error
 
@@ -23,7 +27,7 @@ class TestInputValidation:
         response = client.post(
             "/v1/predict",
             json={"texts": ["   ", "\t\n"]},
-            headers={"x-api-key": "dev-secret-key-123"},
+            headers={"x-api-key": _API_KEY},
         )
         assert response.status_code == 422  # Pydantic validation error
         assert "empty" in response.json()["detail"][0]["msg"].lower()
@@ -34,7 +38,7 @@ class TestInputValidation:
         response = client.post(
             "/v1/predict",
             json={"texts": [long_text]},
-            headers={"x-api-key": "dev-secret-key-123"},
+            headers={"x-api-key": _API_KEY},
         )
         assert response.status_code in [400, 422]
 
@@ -44,7 +48,7 @@ class TestInputValidation:
         response = client.post(
             "/v1/predict",
             json={"texts": texts},
-            headers={"x-api-key": "dev-secret-key-123"},
+            headers={"x-api-key": _API_KEY},
         )
         assert response.status_code in [400, 422]
 
@@ -57,18 +61,16 @@ class TestInputValidation:
         response1 = client.post(
             "/v1/predict",
             json={"texts": [text_latin]},
-            headers={"x-api-key": "dev-secret-key-123"},
+            headers={"x-api-key": _API_KEY},
         )
         response2 = client.post(
             "/v1/predict",
             json={"texts": [text_cyrillic]},
-            headers={"x-api-key": "dev-secret-key-123"},
+            headers={"x-api-key": _API_KEY},
         )
 
         assert response1.status_code == 200
         assert response2.status_code == 200
-        # After normalization, results should be consistent
-        # (exact match depends on model, but both should succeed)
 
     def test_control_characters_stripped(self) -> None:
         """Verify control characters are stripped from input."""
@@ -76,7 +78,7 @@ class TestInputValidation:
         response = client.post(
             "/v1/predict",
             json={"texts": [text_with_controls]},
-            headers={"x-api-key": "dev-secret-key-123"},
+            headers={"x-api-key": _API_KEY},
         )
         assert response.status_code == 200
         # Should not crash, control chars stripped
@@ -86,6 +88,6 @@ class TestInputValidation:
         response = client.post(
             "/v1/predict",
             json={"texts": ["valid text", "   ", "another valid"]},
-            headers={"x-api-key": "dev-secret-key-123"},
+            headers={"x-api-key": _API_KEY},
         )
         assert response.status_code == 422  # Pydantic validation error

@@ -1,8 +1,7 @@
+import asyncio
 import os
-import re
 import time
 import hashlib
-import unicodedata
 from typing import Any, Dict, List, Optional, Tuple
 from collections import OrderedDict
 import threading
@@ -11,6 +10,7 @@ import joblib
 
 from src.inference.base import BasePredictor
 from src.config import settings
+from src.utils.text import normalize_text
 
 
 class Predictor(BasePredictor):
@@ -51,20 +51,18 @@ class Predictor(BasePredictor):
         self._cache_misses = 0
 
     def _cache_key(self, text: str) -> str:
-        """Generate a cache key for text.
+        """Generate a SHA256 cache key for text.
 
-        For long texts (>512 chars), use SHA256 hash to avoid memory bloat.
-        For short texts, use the text itself as the key for faster lookups.
+        Always hashes the text to avoid storing plaintext in cache memory,
+        which could expose sensitive content in heap dumps or memory profiling.
 
         Args:
             text: Input text to generate key for
 
         Returns:
-            Cache key (either text or hash)
+            SHA256 hex digest of the text
         """
-        if len(text) > 512:
-            return hashlib.sha256(text.encode("utf-8")).hexdigest()
-        return text
+        return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
     def _get_from_cache(self, text: str) -> Optional[float]:
         """Retrieve probability from cache if available.
@@ -82,7 +80,7 @@ class Predictor(BasePredictor):
                 self._cache_hits += 1
                 return self._cache[key]
             self._cache_misses += 1
-        return None
+            return None
 
     def _add_to_cache(self, text: str, prob: float) -> None:
         """Add prediction to cache with LRU eviction.
@@ -153,15 +151,11 @@ class Predictor(BasePredictor):
                 f"Expected {expected_hash}, got {calculated_hash}"
             )
 
-    # Compiled regex for stripping control characters
-    _CONTROL_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]")
-
     def _normalize_text(self, text: str) -> str:
-        """Normalize text to NFKC form and strip control characters.
+        """Normalize text using the shared utility.
 
-        NFKC normalization converts compatibility characters and homoglyphs
-        into their canonical forms, helping prevent evasion attacks.
-        Control characters are stripped to prevent injection attacks.
+        Delegates to src.utils.text.normalize_text to ensure training and
+        inference use identical preprocessing. See that function for details.
 
         Args:
             text: Raw input text
@@ -169,9 +163,7 @@ class Predictor(BasePredictor):
         Returns:
             Normalized text safe for feature extraction
         """
-        normalized = unicodedata.normalize("NFKC", text)
-        normalized = self._CONTROL_CHAR_RE.sub("", normalized)
-        return normalized
+        return normalize_text(text)
 
     def predict(
         self, texts: List[str], threshold: Optional[float] = None
@@ -244,6 +236,4 @@ class Predictor(BasePredictor):
     async def apredict(
         self, texts: List[str], threshold: Optional[float] = None
     ) -> Tuple[List[str], List[float], float]:
-        import asyncio
-
         return await asyncio.to_thread(self.predict, texts, threshold)

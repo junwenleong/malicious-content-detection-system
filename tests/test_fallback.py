@@ -15,7 +15,8 @@ class TestFallbackPredictor:
         labels, probs, latency = fallback.predict_safe_fallback(texts, threshold)
 
         assert len(labels) == 3
-        assert all(label == "BENIGN" for label in labels)
+        # UNKNOWN signals degraded state — not BENIGN — to avoid masking failures
+        assert all(label == "UNKNOWN" for label in labels)
         assert all(prob == threshold for prob in probs)
         assert latency == 0.0
 

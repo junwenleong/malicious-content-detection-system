@@ -24,7 +24,7 @@ from src.api.routes import health, predict, batch, metrics
 
 logging.basicConfig(
     level=logging.INFO,
-    format='{"time":"%(asctime)s","name":"%(name)s","level":"%(levelname)s","message":"%(message)s"}',
+    format="%(message)s",  # Messages are already JSON-structured; no wrapper needed
 )
 logger = logging.getLogger(__name__)
 

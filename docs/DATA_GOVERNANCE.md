@@ -120,7 +120,7 @@ Total: 39,234 samples
 - **Recommended:** Evaluate model performance across demographic groups
 - **Methodology:** Stratified evaluation by text characteristics (length, language, domain)
 - **Frequency:** Quarterly or after significant data distribution changes
-- **Documentation:** Record findings in `docs/FAIRNESS_AUDIT_RESULTS.md`
+- **Documentation:** Record findings in `docs/FAIRNESS_AUDIT_RESULTS.md` (create this file before production deployment; it does not exist in the demo repository)
 
 ## Model Versioning & Reproducibility
 

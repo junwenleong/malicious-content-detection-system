@@ -1,5 +1,6 @@
 """Shared FastAPI dependencies for route handlers."""
 
+import hmac
 import json
 import logging
 from typing import Optional, cast
@@ -49,7 +50,12 @@ def require_api_key(request: Request) -> None:
         )
 
     provided = request.headers.get("x-api-key", "")
-    if provided not in settings.api_keys:
+    # Use constant-time comparison to prevent timing attacks.
+    # Python's `in` operator short-circuits, leaking key length/prefix info.
+    key_matched = any(
+        hmac.compare_digest(provided, valid_key) for valid_key in settings.api_keys
+    )
+    if not key_matched:
         auth_limiter.record_attempt(client_ip)
         logger.warning(
             json.dumps(
@@ -68,7 +74,13 @@ def resolve_threshold(predictor: Optional[BasePredictor] = None) -> float:
     if settings.decision_threshold is not None:
         return float(settings.decision_threshold)
     if predictor is not None:
-        return float(predictor.config["optimal_threshold"])
+        try:
+            return float(predictor.config["optimal_threshold"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise HTTPException(
+                status_code=500,
+                detail="Model config missing 'optimal_threshold'",
+            ) from exc
     raise HTTPException(status_code=500, detail="No decision threshold configured")
 
 
@@ -93,11 +105,12 @@ def get_metrics(request: Request) -> Metrics:
 def get_circuit_breaker(request: Request) -> Optional[CircuitBreaker]:
     """Get circuit breaker from app state (may be None if disabled)."""
     breaker = getattr(request.app.state, "breaker", None)
-    # Allow mocks in tests (they have the necessary methods)
     if breaker is None:
         return None
-    # In production, verify it's the right type; in tests, trust the mock
-    if not isinstance(breaker, CircuitBreaker) and not hasattr(breaker, "_mock_name"):
+    # Duck-type check: accept anything with the required interface.
+    # This works for both the real CircuitBreaker and test mocks.
+    if not (hasattr(breaker, "allow_request") and hasattr(breaker, "record_failure")):
+        logger.warning("Unexpected circuit breaker type: %s", type(breaker))
         return None
     return cast(CircuitBreaker, breaker)
 

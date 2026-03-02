@@ -137,10 +137,19 @@ export function AnalyzeTab({ apiUrl, headers }: AnalyzeTabProps) {
             disabled={!textInput.trim() || predictLoading}
             endIcon={
               predictLoading ? (
-                <CircularProgress size={20} color="inherit" />
+                <CircularProgress
+                  size={20}
+                  color="inherit"
+                  aria-hidden="true"
+                />
               ) : null
             }
-            aria-label="Analyze text for malicious content"
+            aria-label={
+              predictLoading
+                ? "Analyzing text, please wait"
+                : "Analyze text for malicious content"
+            }
+            aria-busy={predictLoading}
           >
             {predictLoading ? "Analyzing..." : "Analyze"}
           </Button>
@@ -165,7 +174,12 @@ export function AnalyzeTab({ apiUrl, headers }: AnalyzeTabProps) {
 
       {/* Results Section */}
       {predictData && (
-        <Box display="grid" gap={2}>
+        <Box
+          display="grid"
+          gap={2}
+          aria-live="polite"
+          aria-label="Analysis results"
+        >
           {predictData.predictions.map((prediction, index) => {
             const isMalicious = prediction.label === "MALICIOUS";
             const color = isMalicious ? "error" : "success";
@@ -175,13 +189,15 @@ export function AnalyzeTab({ apiUrl, headers }: AnalyzeTabProps) {
 
             return (
               <Paper
-                key={`${prediction.text}-${index}`}
+                key={`${prediction.text_hash}-${index}`}
                 elevation={3}
                 sx={{
                   p: 3,
                   borderLeft: 6,
                   borderColor: `${color}.main`,
                 }}
+                role="region"
+                aria-label={`Analysis result ${index + 1}: ${prediction.label}`}
               >
                 <Stack
                   direction="row"

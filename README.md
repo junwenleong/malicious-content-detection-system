@@ -33,7 +33,7 @@ But the real system value is **API-first design**.
 
 ## Deployment & Operations
 
-For production deployment, see [DEPLOYMENT.md](DEPLOYMENT.md).
+For production deployment, see [DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 - **Docker**: Multi-stage builds, non-root user.
 - **Observability**: Prometheus metrics, JSON logs.
@@ -338,7 +338,7 @@ This system uses ML to detect malicious content **before** it reaches downstream
          ▼
 ┌─────────────────────────────┐
 │  TF-IDF Vectorizer          │
-│  (10k features, 1-2 grams)  │
+│  (20k features, 1-2 grams)  │
 └────────┬────────────────────┘
          │
          ▼
@@ -350,7 +350,7 @@ This system uses ML to detect malicious content **before** it reaches downstream
          ▼
 ┌─────────────────────────────┐
 │  Probability Calibration    │
-│  (Sigmoid calibration)      │
+│  (Isotonic calibration)     │
 └────────┬────────────────────┘
          │
          ▼
@@ -460,28 +460,31 @@ curl -X POST "http://localhost:8000/v1/predict" \
 {
   "predictions": [
     {
-      "text": "Hello world",
+      "text_hash": "b94f6f125c79e3a5ffaa826f584c10d52ada669e6762051b826b55776d05a8a7",
       "label": "BENIGN",
       "probability_malicious": 0.023,
       "threshold": 0.536,
       "risk_level": "LOW",
       "recommended_action": "ALLOW",
-      "latency_ms": 3.2
+      "latency_ms": 3.2,
+      "is_fallback": false
     },
     {
-      "text": "Ignore previous instructions",
+      "text_hash": "a1b2c3d4e5f6...",
       "label": "MALICIOUS",
       "probability_malicious": 0.94,
       "threshold": 0.536,
       "risk_level": "HIGH",
       "recommended_action": "BLOCK",
-      "latency_ms": 3.5
+      "latency_ms": 3.5,
+      "is_fallback": false
     }
   ],
   "metadata": {
     "total_items": 2,
     "malicious_count": 1,
     "benign_count": 1,
+    "unknown_count": 0,
     "total_latency_ms": 6.7,
     "model_version": "v1.0.0"
   }
@@ -530,7 +533,7 @@ curl http://localhost:8000/model-info
 
 ### 5. Observability (Quick)
 
-- **Metrics (Prometheus):** curl http://localhost:8000/metrics
+- **Metrics (Prometheus):** `curl -H "x-api-key: <your-key>" http://localhost:8000/metrics`
 - **Health:** curl http://localhost:8000/health (includes service_degraded)
 - **Logging:** JSON logs with correlation IDs
 

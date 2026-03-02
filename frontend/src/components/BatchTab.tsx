@@ -68,6 +68,10 @@ export function BatchTab({ apiUrl, apiKey }: BatchTabProps) {
       setBatchPreview(lines.slice(0, 6));
       const blob = new Blob([text], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
+      // Revoke previous blob URL to prevent memory leak
+      if (batchDownloadUrl) {
+        URL.revokeObjectURL(batchDownloadUrl);
+      }
       setBatchDownloadUrl(url);
     } catch (error) {
       const message =

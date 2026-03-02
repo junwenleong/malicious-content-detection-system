@@ -194,8 +194,17 @@ def load_and_split_data(
 # Preprocessing
 # ---------------------------------------------------------------------------
 def preprocess_text(text: str) -> str:
-    """Lowercase text for consistency (matches notebook preprocessing)."""
-    return text.lower() if isinstance(text, str) else ""
+    """Normalize text for training — delegates to the shared utility.
+
+    Uses src.utils.text.normalize_text to ensure training and inference
+    use identical preprocessing. This prevents train/serve skew.
+
+    Note: If you need to change normalization, update src/utils/text.py
+    (the single source of truth).
+    """
+    from src.utils.text import normalize_text
+
+    return normalize_text(text)
 
 
 def prepare_features_labels(
@@ -541,7 +550,7 @@ def save_model_artifacts(
             "label_mapping": {0: "benign", 1: "malicious"},
             "positive_class": 1,
             "optimal_threshold": threshold,
-            "model_version": "1.0",
+            "model_version": "v1.0.0",  # matches settings.model_version format
             "created_date": pd.Timestamp.now().strftime("%Y-%m-%d"),
             "threshold_selection_method": "Validation PR curve (F1)",
             "metrics": metrics,
@@ -680,7 +689,7 @@ def main() -> None:
         logger.error("Train + val + test sizes must sum to 1.0 (got %.2f)", total)
         sys.exit(1)
 
-    # Set random seeds
+    # Set random seeds for reproducibility (sklearn/GridSearchCV uses global state)
     np.random.seed(config.random_state)
     logger.info("Random seed: %d", config.random_state)
 

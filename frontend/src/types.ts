@@ -1,5 +1,5 @@
 export type PredictionResult = {
-  text: string;
+  text_hash: string;
   label: string;
   probability_malicious: number;
   threshold: number;

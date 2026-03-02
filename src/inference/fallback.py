@@ -28,8 +28,9 @@ class FallbackPredictor:
     ) -> Tuple[List[str], List[float], float]:
         """Return conservative fallback predictions.
 
-        When the primary model fails, return predictions that trigger
-        human review rather than auto-allowing potentially malicious content.
+        When the primary model fails, return predictions that signal
+        degraded state to downstream consumers. Labels are UNKNOWN
+        (not BENIGN/MALICIOUS) so consumers can route to human review.
 
         Args:
             texts: Input texts (used only for count)
@@ -37,20 +38,20 @@ class FallbackPredictor:
 
         Returns:
             Tuple of (labels, probabilities, latency)
-            - All labels are "BENIGN" (to avoid false blocks)
+            - All labels are "UNKNOWN" (signals degraded/fallback state)
             - All probabilities are at threshold (triggers REVIEW action)
             - Latency is 0.0
         """
         self.fallback_count += 1
         logger.warning(
-            f"Using fallback predictions (count: {self.fallback_count}). "
-            "Primary model unavailable."
+            "Using fallback predictions (count: %d). Primary model unavailable.",
+            self.fallback_count,
         )
 
         # Return threshold probability to trigger REVIEW action
-        # This ensures human oversight without blocking legitimate traffic
+        # Label is UNKNOWN to signal degraded/fallback state to consumers
         count = len(texts)
-        labels = ["BENIGN"] * count
+        labels = ["UNKNOWN"] * count
         probs = [threshold] * count
 
         return labels, probs, 0.0

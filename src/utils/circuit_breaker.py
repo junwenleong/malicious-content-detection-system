@@ -9,10 +9,15 @@ class CircuitBreaker:
         self.failure_count = 0
         self.open_until = 0.0
         self._was_open = False
+        self._probe_in_flight = False  # True while a half-open probe is in flight
         self._lock = threading.Lock()
 
     def allow_request(self) -> bool:
         """Check if a request should be allowed through the circuit breaker.
+
+        In half-open state, only ONE probe request is allowed through at a time.
+        Subsequent concurrent requests are rejected until the probe resolves via
+        record_success() or record_failure().
 
         Returns:
             True if request is allowed, False if circuit is open
@@ -24,10 +29,18 @@ class CircuitBreaker:
             if now < self.open_until:
                 return False
 
-            # Circuit was open but cooldown expired - enter half-open state
-            # Allow one probe request to test if service recovered
+            # Circuit was open but cooldown expired - half-open state.
+            # Allow exactly one probe; reject concurrent requests while probe is in flight.
             if self._was_open:
+                if self._probe_in_flight:
+                    return False
+                self._was_open = False
+                self._probe_in_flight = True
                 return True
+
+            # Probe is in flight but _was_open already cleared - reject concurrent requests
+            if self._probe_in_flight:
+                return False
 
             # Circuit is closed - allow request
             return True
@@ -37,9 +50,13 @@ class CircuitBreaker:
             self.failure_count = 0
             self.open_until = 0.0
             self._was_open = False
+            self._probe_in_flight = False
 
     def record_failure(self) -> None:
         with self._lock:
+            # Clear probe-in-flight flag regardless — probe resolved with failure
+            self._probe_in_flight = False
+
             self.failure_count += 1
             if self.failure_count >= self.failure_threshold:
                 self.open_until = time.monotonic() + self.cooldown_seconds

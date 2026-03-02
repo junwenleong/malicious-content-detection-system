@@ -16,7 +16,7 @@ import { AnalyzeTab } from "./components/AnalyzeTab";
 import { BatchTab } from "./components/BatchTab";
 
 const defaultApiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
-const defaultApiKey = "dev-secret-key-123";
+const defaultApiKey = import.meta.env.VITE_DEFAULT_API_KEY ?? "";
 
 function App() {
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");

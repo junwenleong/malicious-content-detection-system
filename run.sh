@@ -10,29 +10,29 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-# Function to check if a port is in use
-is_port_in_use() {
-    lsof -i :"$1" &> /dev/null || nc -z localhost "$1" &> /dev/null 2>&1
-}
-
-# Find an available backend port starting from 8000
-BACKEND_PORT=8000
-while is_port_in_use $BACKEND_PORT; do
-    echo -e "\033[33mPort $BACKEND_PORT is in use, trying next port...\033[0m"
-    BACKEND_PORT=$((BACKEND_PORT + 1))
-    if [ $BACKEND_PORT -gt 8100 ]; then
-        echo -e "\033[31mError: Could not find available port in range 8000-8100\033[0m"
-        exit 1
-    fi
-done
-
+BACKEND_PORT=8002
 FRONTEND_PORT=5175
 
-# Check if frontend port is available
-if is_port_in_use $FRONTEND_PORT; then
-    echo -e "\033[31mError: Frontend port $FRONTEND_PORT is already in use.\033[0m"
-    exit 1
-fi
+# Kill any process occupying a given port
+clear_port() {
+    local port=$1
+    local pids
+    pids=$(lsof -ti :"$port" 2>/dev/null || true)
+    if [ -n "$pids" ]; then
+        echo -e "\033[33mClearing port $port (PIDs: $pids)...\033[0m"
+        echo "$pids" | xargs kill -15 2>/dev/null || true
+        sleep 1
+        # Force kill any remaining processes
+        pids=$(lsof -ti :"$port" 2>/dev/null || true)
+        if [ -n "$pids" ]; then
+            echo "$pids" | xargs kill -9 2>/dev/null || true
+            sleep 0.5
+        fi
+    fi
+}
+
+clear_port $BACKEND_PORT
+clear_port $FRONTEND_PORT
 
 # Export ports for docker-compose
 export BACKEND_PORT

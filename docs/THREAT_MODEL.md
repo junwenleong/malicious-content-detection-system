@@ -24,7 +24,7 @@ The Malicious Content Detection System is an internal API service that classifie
 
 ### 3. Model Evasion / Adversarial Input
 
-- **Mitigation**: Unicode NFKC normalization strips homoglyphs and control characters. TF-IDF features are relatively robust to minor perturbations.
+- **Mitigation**: Unicode NFKC normalization strips homoglyphs and control characters. TF-IDF features are relatively robust to minor perturbations. Training and inference share a single normalization function (`src/utils/text.normalize_text`) to prevent train/serve skew.
 - **Residual Risk**: High. Sophisticated adversaries can craft inputs that evade detection. Continuous retraining and monitoring required.
 
 ### 4. Model Tampering
@@ -44,8 +44,13 @@ The Malicious Content Detection System is an internal API service that classifie
 
 ### 7. Prompt Injection via Batch CSV
 
-- **Mitigation**: MIME type validation, file extension check, content-length limit, CSV column validation.
+- **Mitigation**: MIME type validation, file extension check, content-length limit, CSV column validation, CSV formula injection sanitization (cells starting with `=`, `+`, `-`, `@` are prefixed with `'`), hard row cap (`MAX_BATCH_ITEMS * 100`) to prevent resource exhaustion via oversized uploads.
 - **Residual Risk**: Low. CSV parsing is standard library; no code execution from CSV content.
+
+### 8. Metrics Endpoint Information Leakage
+
+- **Mitigation**: `/metrics` and `/model-info` endpoints require API key authentication. Prometheus metrics expose request counts, error rates, and latency — sufficient for an attacker to fingerprint traffic patterns if unauthenticated. `/model-info` exposes model version, threshold, and cache stats useful for adversarial evasion.
+- **Residual Risk**: Low when API key is rotated regularly.
 
 ## Failure Impact Analysis
 

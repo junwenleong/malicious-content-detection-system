@@ -31,6 +31,10 @@ class PredictionResult(BaseModel):
     risk_level: str
     recommended_action: str
     latency_ms: Optional[float] = None
+    is_fallback: bool = Field(
+        default=False,
+        description="True when prediction was produced by the fallback predictor (primary model unavailable). Treat with lower confidence.",
+    )
 
 
 class PredictResponse(BaseModel):
