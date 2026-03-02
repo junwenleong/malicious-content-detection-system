@@ -16,6 +16,7 @@ from src.api.dependencies import (
     check_rate_limit,
     check_circuit_breaker,
 )
+from src.utils.text import hash_text
 from src.config import settings
 from src.inference.base import BasePredictor
 from src.utils.circuit_breaker import CircuitBreaker
@@ -110,9 +111,9 @@ def _format_csv_row(
     per_item_latency: float,
 ) -> str:
     """Format a single prediction result as CSV row."""
-    clean_text = text.replace(",", " ").replace("\n", " ")[:100]
+    text_hash = hash_text(text)
     risk_level, recommended_action = policy_decision(float(prob), threshold)
-    return f"{clean_text},{label},{prob:.4f},{threshold:.4f},{risk_level},{recommended_action},{settings.model_version},{per_item_latency * 1000:.2f}\n"
+    return f"{text_hash},{label},{prob:.4f},{threshold:.4f},{risk_level},{recommended_action},{settings.model_version},{per_item_latency * 1000:.2f}\n"
 
 
 @router.post("/batch")
@@ -149,7 +150,7 @@ async def batch_predict(
 
     async def generate() -> AsyncGenerator[str, None]:
         nonlocal total_rows
-        yield "text,label,probability,threshold,risk_level,recommended_action,model_version,latency_ms\n"
+        yield "text_hash,label,probability,threshold,risk_level,recommended_action,model_version,latency_ms\n"
 
         batch_texts: list[str] = []
         chunk_size = settings.max_batch_items

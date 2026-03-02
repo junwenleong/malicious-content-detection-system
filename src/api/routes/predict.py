@@ -79,7 +79,7 @@ async def predict(
         risk_level, recommended_action = policy_decision(float(prob), threshold)
         predictions.append(
             PredictionResult(
-                text=text[:100] + "..." if len(text) > 100 else text,
+                text_hash=hash_text(text),
                 label=str(label),
                 probability_malicious=float(prob),
                 threshold=threshold,

@@ -22,7 +22,9 @@ class PredictRequest(BaseModel):
 
 
 class PredictionResult(BaseModel):
-    text: str
+    text_hash: str = Field(
+        ..., description="SHA256 hash of input text (for audit trail, not raw text)"
+    )
     label: str
     probability_malicious: float
     threshold: float
