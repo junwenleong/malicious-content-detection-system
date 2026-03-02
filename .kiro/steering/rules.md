@@ -8,37 +8,100 @@ inclusion: always
 
 # SHIP WORKFLOW
 
-## Trigger: "ship" keyword
+## Trigger: "ship"
 
-When the user says **"ship"** (with or without a message), run `./ship.sh` using the project's defined workflow.
+When the user says **"ship"** (with or without a message), run `./ship.sh` via bash.
 
-**Behavior:**
+- If the user provides a message, use it: `./ship.sh "your message"`
+- If no message is provided, ask for one before proceeding
+- `./ship.sh` is interactive (TTY prompts). If it blocks on a prompt, pipe input: `echo "y" | ./ship.sh "message"`
+- On failure: read the error, fix the root cause, re-run. Handle lint/type/test errors autonomously.
 
-- If the user provides a message (e.g., "ship fix the rate limiter"), use it as the commit message: `./ship.sh "fix the rate limiter"`
-- If no message is provided, ask the user for one before proceeding
-- Run the command via bash and monitor output
+---
 
-**On failure, debug and fix before retrying:**
+## Trigger: "ship with next tag" (and similar)
 
-1. Read the error output carefully
-2. Identify the root cause (test failure, lint error, type error, build failure, etc.)
-3. Fix the issue in the relevant file(s)
-4. Re-run `./ship.sh "same message"` after fixing
-5. Repeat until it succeeds or the issue requires user input
+**Trigger phrases:** "ship with next tag", "tag and ship", "release it", or any intent to commit + tag.
 
-**What ship.sh does (for context):**
+**Do NOT run `./ship.sh`** — it requires a TTY and has interactive prompts. Instead, replicate its logic step-by-step using individual tool calls. This is the ONE exception to the "never commit/push" rule.
 
-- Runs the full test suite (`pytest tests/`)
-- Auto-formats frontend with Prettier
-- Stages all changes (`git add .`)
-- Commits with GPG signature (pre-commit hook runs fast checks)
-- Pushes to remote
+### Step-by-step execution
 
-**Do NOT:**
+#### 1. Determine next tag
 
-- Run `git commit` or `git push` directly — always go through `./ship.sh`
-- Skip fixing failures — if ship fails, fix it first
-- Ask the user to fix trivial lint/type errors — handle them autonomously
+- Run: `git tag --merged HEAD --sort=-creatordate | head -10`
+- Use only tags **reachable from HEAD** to avoid orphan tags on other branches inflating the version
+- Parse the highest reachable semver tag as `vMAJOR.MINOR.PATCH`, increment patch → `vMAJOR.MINOR.(PATCH+1)`
+- If no reachable tags exist, use `v0.1.0`
+- Always use patch increment unless user says "minor" or "major"
+
+#### 2. Determine commit message
+
+- If user provided one, use it
+- Otherwise inspect `git diff --staged` and unstaged changes to write a conventional commit message (`feat/fix/chore/refactor` etc.)
+
+#### 3. Check for untracked files
+
+- Run: `git ls-files --others --exclude-standard`
+- If any exist, list them and ask the user: "Include these untracked files?"
+- If confirmed, they'll be picked up by `git add .`
+
+#### 4. Run tests
+
+- Run: `export PYTHONPATH=. && python -m pytest tests/ -q --tb=short`
+- If `--fast` was requested: add `-m "not slow and not integration"`
+- If tests fail: attempt to fix, then re-run. If unfixable, stop and report.
+
+#### 5. Format frontend
+
+- Run: `cd frontend && npx prettier --write "**/*.{js,jsx,ts,tsx,json,css,scss,md,yaml,yml}" --ignore-unknown`
+- Ignore errors (non-critical)
+
+#### 6. Stage and commit (GPG signed)
+
+- Run: `git add .`
+- Run: `git commit -S -m "<commit message>"`
+- If pre-commit hooks auto-fixed files: run `git add -u` then retry commit
+- If nothing to commit: note it and continue to push
+- If GPG signing fails: diagnose (`git config user.signingkey`, `gpg --list-secret-keys`, `pgrep gpg-agent`) and report clearly
+
+#### 7. Capture commit SHA
+
+- Run: `git rev-parse HEAD` — store as COMMIT_SHA for potential rollback
+
+#### 8. Sync with remote
+
+- Run: `git fetch origin <branch>`
+- Check if behind: `git rev-list --count HEAD..origin/<branch>`
+- If behind: attempt `git pull --ff-only origin <branch>`, then re-run tests
+- If fast-forward fails: stop and tell user to rebase manually
+
+#### 9. Push branch
+
+- Run: `git push origin <branch>`
+- If push fails: ask user if they want to undo the commit
+- If yes: `git reset --soft <COMMIT_SHA>~1` (only if HEAD still matches COMMIT_SHA)
+- Report clearly and stop
+
+#### 10. Create GPG-signed tag
+
+- Verify tag doesn't already exist: `git rev-parse <tag>` should fail
+- Run: `git tag -s -m "Release <tag>" <tag>`
+- If tag signing fails: diagnose GPG and report
+
+#### 11. Push tag
+
+- Run: `git push origin <tag>`
+- If tag push fails: delete local tag (`git tag -d <tag>`) and report
+- On success: report the tag and the GitHub Actions URL derived from remote URL
+
+### Error handling
+
+- Tests fail → fix and retry before committing
+- GPG commit fails → diagnose signing key and agent
+- Push rejected → offer soft reset, explain what to fix
+- Tag already exists → increment to next available patch
+- Fast-forward fails → stop, tell user to rebase
 
 # ENGINEERING PRINCIPLES
 
