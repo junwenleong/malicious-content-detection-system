@@ -7,7 +7,7 @@ services:
     environment:
       ALLOWED_ORIGINS: '${ALLOWED_ORIGINS:-["http://localhost:5173", "http://127.0.0.1:5173"]}'
       API_KEYS: "${API_KEYS:-[]}"
-      # WARNING: Default key for development only. Override in production.
+      # WARNING: Default key for development only. MUST be overridden in production via secrets management.
       API_KEY: "${API_KEY:-dev-secret-key-123}"
       # WARNING: Default threshold for development only. Override in production.
       DECISION_THRESHOLD: "${DECISION_THRESHOLD:-0.536}"
@@ -47,7 +47,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      test: ["CMD", "curl", "-f", "--silent", "--max-time", "3", "http://localhost:80/"]
       interval: 30s
       timeout: 5s
       retries: 3

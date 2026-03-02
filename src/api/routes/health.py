@@ -1,6 +1,7 @@
 import time
 from typing import Any, Dict
-from fastapi import APIRouter, Request, Response, status
+from fastapi import APIRouter, Depends, Request, Response, status
+from src.api.dependencies import require_api_key
 from src.config import settings
 from src.inference.base import BasePredictor
 from src.utils.circuit_breaker import CircuitBreaker
@@ -13,7 +14,9 @@ def health(request: Request, response: Response) -> Dict[str, Any]:
     """Health check endpoint with model and circuit breaker status.
 
     Returns:
-        Health status including model availability and circuit breaker state
+        Health status including model availability and circuit breaker state.
+        Circuit breaker details are intentionally minimal to avoid leaking
+        operational intelligence to unauthenticated callers.
     """
     predictor: BasePredictor | None = getattr(request.app.state, "predictor", None)
     breaker: CircuitBreaker | None = getattr(request.app.state, "breaker", None)
@@ -32,22 +35,20 @@ def health(request: Request, response: Response) -> Dict[str, Any]:
         health_status["status"] = "unhealthy"
 
     if breaker:
+        # Expose only the state string — not failure counts or thresholds
+        # to avoid leaking operational intelligence to unauthenticated callers
         breaker_info: Dict[str, Any] = {
             "status": breaker.state,
-            "failures": breaker.failure_count,
-            "threshold": breaker.failure_threshold,
         }
         health_status["circuit_breaker"] = breaker_info
         if breaker.state != "closed":
             health_status["status"] = "degraded"
             health_status["service_degraded"] = True
 
-    health_status["model_version"] = settings.model_version
-
     return health_status
 
 
-@router.get("/model-info")
+@router.get("/model-info", dependencies=[Depends(require_api_key)])
 def model_info(request: Request) -> Dict[str, Any]:
     """Get model configuration and cache performance statistics."""
     predictor: BasePredictor | None = getattr(request.app.state, "predictor", None)

@@ -1,8 +1,8 @@
 node_modules
 dist
-.env
-.env.*
-*.log
 .git
 .gitignore
-README.md
+*.md
+.env*
+test-results
+playwright-report

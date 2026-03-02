@@ -64,14 +64,18 @@ def test_health_endpoint() -> None:
         data = response.json()
         assert data["status"] == "healthy"
         if "circuit_breaker" in data:
+            # Only state is exposed — failure counts are intentionally omitted
             assert data["circuit_breaker"]["status"] in ["closed", "open", "half-open"]
-            assert "failures" in data["circuit_breaker"]
-            assert "threshold" in data["circuit_breaker"]
+            assert "failures" not in data["circuit_breaker"]
+            assert "threshold" not in data["circuit_breaker"]
 
 
 def test_predict_endpoint() -> None:
     with _create_client() as client:
-        model_info = client.get("/model-info").json()
+        model_info = client.get(
+            "/model-info",
+            headers={"x-api-key": src.config.settings.api_keys[0]},
+        ).json()
         response = client.post(
             "/v1/predict",
             json={"texts": ["Hello world"]},
@@ -86,7 +90,14 @@ def test_predict_endpoint() -> None:
 
 def test_model_info_endpoint() -> None:
     with _create_client() as client:
+        # Requires auth
         response = client.get("/model-info")
+        assert response.status_code == 403
+
+        response = client.get(
+            "/model-info",
+            headers={"x-api-key": src.config.settings.api_keys[0]},
+        )
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data["model_version"], str) and data["model_version"]
@@ -111,7 +122,10 @@ def test_threshold_behavior_extreme() -> None:
 
 def test_metrics_endpoint() -> None:
     with _create_client() as client:
-        response = client.get("/metrics")
+        response = client.get(
+            "/metrics",
+            headers={"x-api-key": src.config.settings.api_keys[0]},
+        )
         assert response.status_code == 200
         assert "http_requests_total" in response.text
 
@@ -160,3 +174,108 @@ def test_predict_rejects_whitespace_only_text() -> None:
         )
         assert response.status_code == 422  # Pydantic validation error
         assert "Empty text" in response.json()["detail"][0]["msg"]
+
+
+def test_metrics_endpoint_requires_auth() -> None:
+    """Metrics endpoint must require API key authentication."""
+    with _create_client() as client:
+        # No auth header
+        response = client.get("/metrics")
+        assert response.status_code == 403
+
+        # With valid key
+        response = client.get(
+            "/metrics",
+            headers={"x-api-key": src.config.settings.api_keys[0]},
+        )
+        assert response.status_code == 200
+
+
+def test_health_does_not_expose_circuit_breaker_internals() -> None:
+    """Health endpoint must not leak failure counts or thresholds."""
+    with _create_client() as client:
+        response = client.get("/health")
+        assert response.status_code == 200
+        data = response.json()
+        if "circuit_breaker" in data:
+            assert "failures" not in data["circuit_breaker"]
+            assert "threshold" not in data["circuit_breaker"]
+
+
+def test_batch_csv_injection_sanitization() -> None:
+    """Verify CSV output cells starting with formula chars are sanitized."""
+    # Craft a text that, if unsanitized, would produce a formula-starting label
+    # We can't control the label, but we can verify the output is valid CSV
+    csv_content = io.StringIO()
+    writer = csv.writer(csv_content)
+    writer.writerow(["text"])
+    writer.writerow(["Hello world"])
+    csv_content.seek(0)
+
+    file_content = csv_content.getvalue().encode("utf-8")
+    files = {"file": ("test.csv", file_content, "text/csv")}
+
+    with _create_client() as client:
+        response = client.post(
+            "/v1/batch",
+            files=files,
+            headers={"x-api-key": src.config.settings.api_keys[0]},
+        )
+        assert response.status_code == 200
+        # Verify no cell starts with a formula character (=, +, -, @)
+        for line in response.text.strip().split("\n")[1:]:  # skip header
+            for cell in line.split(","):
+                assert not cell.startswith(
+                    ("=", "+", "-", "@")
+                ), f"Potential CSV injection in cell: {cell!r}"
+
+
+def test_batch_missing_text_column() -> None:
+    """Batch endpoint rejects CSV without 'text' column."""
+    csv_content = io.StringIO()
+    writer = csv.writer(csv_content)
+    writer.writerow(["content", "label"])
+    writer.writerow(["Hello world", "benign"])
+    csv_content.seek(0)
+
+    file_content = csv_content.getvalue().encode("utf-8")
+    files = {"file": ("test.csv", file_content, "text/csv")}
+
+    with _create_client() as client:
+        response = client.post(
+            "/v1/batch",
+            files=files,
+            headers={"x-api-key": src.config.settings.api_keys[0]},
+        )
+        assert response.status_code == 400
+        assert "text" in response.json()["detail"].lower()
+
+
+def test_auth_rate_limiting_lockout() -> None:
+    """After max failed auth attempts, client gets 429."""
+    with _create_client() as client:
+        # Exhaust auth rate limit (default 5 attempts)
+        for _ in range(src.config.settings.auth_rate_limit_max):
+            client.post(
+                "/v1/predict",
+                json={"texts": ["test"]},
+                headers={"x-api-key": "wrong-key"},
+            )
+
+        # Next attempt should be rate-limited
+        response = client.post(
+            "/v1/predict",
+            json={"texts": ["test"]},
+            headers={"x-api-key": "wrong-key"},
+        )
+        assert response.status_code == 429
+        assert "Retry-After" in response.headers
+
+
+def test_health_does_not_expose_model_version() -> None:
+    """Health endpoint must not leak model version to unauthenticated callers."""
+    with _create_client() as client:
+        response = client.get("/health")
+        assert response.status_code == 200
+        data = response.json()
+        assert "model_version" not in data

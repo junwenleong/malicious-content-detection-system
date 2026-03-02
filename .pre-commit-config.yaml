@@ -37,17 +37,17 @@ repos:
       - id: ruff-format
         name: ruff (format)
 
-  # Python: Mypy (type checking - only on changed files)
+  # Python: Mypy (type checking - full project for consistency)
   - repo: local
     hooks:
       - id: mypy
         name: mypy (type check)
-        entry: mypy
+        entry: mypy src/ api/
         language: system
         types: [python]
         files: ^(src|api)/
-        args: [--ignore-missing-imports, --no-strict-optional]
-        pass_filenames: true
+        args: []
+        pass_filenames: false
 
   # Frontend: Prettier (auto-format - faster than ESLint for formatting)
   - repo: https://github.com/pre-commit/mirrors-prettier

@@ -143,8 +143,11 @@ def test_predict_endpoint_model_error(mock_app_state: Any) -> None:
 
     try:
         response = client.post("/v1/predict", json={"texts": ["test"]}, headers=headers)
-        assert response.status_code == 503
-        assert "Inference error" in response.json()["detail"]
+        # Fallback predictor activates — returns 200 with is_fallback=true
+        assert response.status_code == 200
+        data = response.json()
+        assert data["predictions"][0]["is_fallback"] is True
+        assert data["predictions"][0]["label"] == "UNKNOWN"
 
         # Verify circuit breaker failure recorded
         mock_breaker.record_failure.assert_called_once()

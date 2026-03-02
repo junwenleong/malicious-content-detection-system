@@ -41,11 +41,17 @@ def test_circuit_breaker_recovery(mock_time: Any) -> None:
     # Move time forward past cooldown - should be half-open
     mock_time.monotonic.return_value = 100.2
     assert breaker.state == "half-open"
-    assert breaker.allow_request() is True
 
-    # After successful request, should close
+    # First allow_request() in half-open: grants the probe and re-arms open_until
+    assert breaker.allow_request() is True
+    # _was_open is now False; open_until re-armed to 100.2 + 0.1 = 100.3
+    # A second concurrent request should be REJECTED (circuit re-armed)
+    assert breaker.allow_request() is False
+
+    # After successful probe, circuit should close
     breaker.record_success()
     assert breaker.state == "closed"
+    assert breaker.allow_request() is True
 
 
 def test_predictor_empty_input() -> None:

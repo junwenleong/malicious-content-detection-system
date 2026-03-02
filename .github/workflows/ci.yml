@@ -22,7 +22,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.13'
         cache: 'pip'
 
     - name: Install dependencies
@@ -38,13 +38,13 @@ jobs:
       run: |
         mypy src/ api/
 
-    - name: Format check with Black
+    - name: Format check with Ruff
       run: |
-        black --check src/ api/ tests/
+        ruff format --check src/ api/ tests/
 
     - name: Run unit tests
       run: |
-        pytest tests/ -v --cov=src --cov-report=term-missing
+        pytest tests/ -v --cov=src --cov-report=term-missing --cov-fail-under=80
       env:
         API_KEY: test-key-for-ci
         HMAC_SECRET: test-hmac-secret-for-ci-pipeline-minimum-32-chars
