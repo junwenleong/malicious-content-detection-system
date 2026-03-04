@@ -10,6 +10,15 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
+# Detect and use Colima socket if available
+if [ -S "$HOME/.colima/docker.sock" ]; then
+    export DOCKER_HOST="unix://$HOME/.colima/docker.sock"
+    echo -e "\033[32m✓ Using Colima Docker socket\033[0m"
+elif [ -S "$HOME/.docker/run/docker.sock" ]; then
+    export DOCKER_HOST="unix://$HOME/.docker/run/docker.sock"
+    echo -e "\033[32m✓ Using Docker Desktop socket\033[0m"
+fi
+
 BACKEND_PORT=8002
 FRONTEND_PORT=5175
 
