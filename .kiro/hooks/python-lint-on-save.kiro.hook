@@ -1,0 +1,18 @@
+{
+  "enabled": true,
+  "name": "Python Lint on Save",
+  "description": "Runs ruff check and mypy on any saved Python source file to catch lint and type errors immediately",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "src/**/*.py",
+      "api/**/*.py"
+    ]
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "ruff check --fix $FILE && mypy $FILE --ignore-missing-imports",
+    "timeout": 30
+  }
+}

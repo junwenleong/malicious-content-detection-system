@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "name": "Dependency Security Scan",
+  "description": "Triggers a Snyk security scan whenever requirements or package.json files are modified, catching vulnerable dependencies at the point of addition",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "requirements*.txt",
+      "frontend/package.json"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A dependency file was just modified. Run a security audit using the snyk-secure-at-inception power to check for vulnerabilities in the new or changed dependencies. Focus on high/critical severity issues. Report findings concisely — package name, CVE if available, severity, and recommended fix version."
+  }
+}

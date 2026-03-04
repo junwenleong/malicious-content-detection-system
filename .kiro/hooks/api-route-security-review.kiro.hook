@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "API Route Security Review",
+  "description": "When an API route file is saved, reviews it for auth, rate limiting, and input validation coverage to enforce the project's security standards",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "src/api/routes/*.py"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "An API route file was just saved. Quickly review it and check: (1) Does every endpoint have require_api_key and check_rate_limit dependencies? (2) Is input validation present (size limits, sanitization)? (3) Are errors returning RFC 7807 format without leaking stack traces? (4) Is audit logging present? Only flag actual issues — don't report things that are already correct."
+  }
+}
