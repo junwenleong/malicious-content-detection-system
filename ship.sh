@@ -114,8 +114,13 @@ if ! git commit -S -m "$COMMIT_MSG"; then
     if ! git diff --quiet; then
         echo "⚠️  Pre-commit hooks auto-fixed some files. Re-staging..."
         git add -u
-        echo "✅ Auto-fixes staged. Committing again..."
-        git commit -S -m "$COMMIT_MSG" || commit_failed
+        # Verify there's actually something staged before retrying
+        if git diff --cached --quiet; then
+            echo "ℹ️  No changes to commit after re-staging (pre-commit hooks produced identical output)."
+        else
+            echo "✅ Auto-fixes staged. Committing again..."
+            git commit -S -m "$COMMIT_MSG" || commit_failed
+        fi
     # Nothing to commit (working tree clean after auto-fixes applied everything)
     elif git diff --cached --quiet; then
         echo "ℹ️  No changes to commit (working tree clean after auto-fixes)."
