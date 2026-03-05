@@ -12,6 +12,6 @@
   "then": {
     "type": "runCommand",
     "command": "export PYTHONPATH=. && python -m pytest tests/ -q --tb=short -m \"not slow and not integration\" --timeout=10",
-    "timeout": 30
+    "timeout": 60
   }
 }

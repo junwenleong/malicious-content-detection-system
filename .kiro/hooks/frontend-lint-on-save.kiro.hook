@@ -1,7 +1,7 @@
 {
   "enabled": true,
   "name": "Frontend Lint on Save",
-  "description": "Runs ESLint with auto-fix and TypeScript type check on saved frontend files",
+  "description": "Runs ESLint and TypeScript type check on saved frontend files",
   "version": "1",
   "when": {
     "type": "fileEdited",
@@ -12,7 +12,7 @@
   },
   "then": {
     "type": "runCommand",
-    "command": "cd frontend && npx eslint $FILE --fix && npx tsc --noEmit",
+    "command": "npx eslint $FILE && npx tsc --noEmit",
     "timeout": 30
   }
 }
