@@ -1,7 +1,7 @@
 {
   "enabled": true,
-  "name": "Python Lint on Save",
-  "description": "Runs ruff check and mypy on any saved Python source file to catch lint and type errors immediately",
+  "name": "Python Lint & Format on Save",
+  "description": "Formats with ruff format, then runs ruff check and mypy. Formatting on save ensures pre-commit ruff-format has nothing to change when you commit.",
   "version": "1",
   "when": {
     "type": "fileEdited",
@@ -13,7 +13,7 @@
   },
   "then": {
     "type": "runCommand",
-    "command": "ruff check $FILE && mypy $FILE --ignore-missing-imports",
+    "command": "ruff format $FILE && ruff check $FILE && mypy $FILE --ignore-missing-imports",
     "timeout": 30
   }
 }
