@@ -31,7 +31,7 @@ repos:
   # Python: Ruff (replaces Flake8, isort, Black - 100x faster)
   # Check-only: ship.sh runs ruff --fix before committing, so no auto-fix needed here
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.4
+    rev: v0.15.5
     hooks:
       - id: ruff
         name: ruff (lint)
