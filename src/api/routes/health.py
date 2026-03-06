@@ -1,4 +1,4 @@
-import time
+from datetime import datetime, timezone
 from typing import Any, Dict
 from fastapi import APIRouter, Depends, Request, Response, status
 from src.api.dependencies import require_api_key
@@ -27,7 +27,7 @@ def health(request: Request, response: Response) -> Dict[str, Any]:
         "status": "healthy" if is_healthy else "unhealthy",
         "model_loaded": predictor is not None,
         "service_degraded": False,
-        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
 
     if not is_healthy:

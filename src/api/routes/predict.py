@@ -37,14 +37,9 @@ async def predict(
     __: None = Depends(check_rate_limit),
     ___: None = Depends(check_circuit_breaker),
 ) -> PredictResponse:
-    # Defensive: Strip whitespace (Pydantic already rejects empty strings,
-    # but stripping ensures consistent normalization before inference)
+    # Strip whitespace — Pydantic rejects empty strings, but stripping ensures
+    # consistent normalization before inference (e.g. "  hello  " → "hello")
     texts = [text.strip() for text in request.texts]
-
-    if len(texts) > settings.max_batch_items:
-        raise HTTPException(status_code=400, detail="Batch size exceeds maximum items")
-    if any(len(text) > settings.max_text_length for text in texts):
-        raise HTTPException(status_code=400, detail="Text exceeds maximum length")
 
     # Get dependencies
     predictor: BasePredictor = get_predictor(req)

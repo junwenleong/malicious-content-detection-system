@@ -123,18 +123,19 @@ text
 
 ### GET /health
 
-Service health and circuit breaker status.
+Service health and circuit breaker status. No authentication required.
 
 ```json
 {
   "status": "healthy",
   "model_loaded": true,
   "service_degraded": false,
-  "timestamp": "2024-02-28T10:30:00",
-  "circuit_breaker": { "status": "closed", "failures": 0, "threshold": 5 },
-  "model_version": "v1.0.0"
+  "timestamp": "2024-02-28T10:30:00Z",
+  "circuit_breaker": { "status": "closed" }
 }
 ```
+
+Note: `circuit_breaker` only exposes the state string — failure counts and thresholds are intentionally omitted to avoid leaking operational intelligence to unauthenticated callers. `model_version` is also omitted from this endpoint for the same reason; use `/model-info` (authenticated) to get it.
 
 Returns 503 if the model isn't loaded or the circuit breaker is open.
 

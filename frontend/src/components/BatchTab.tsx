@@ -4,6 +4,12 @@ import {
   Button,
   CircularProgress,
   Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Typography,
 } from "@mui/material";
 import { useState } from "react";
@@ -146,17 +152,35 @@ export function BatchTab({ apiUrl, apiKey }: BatchTabProps) {
       {batchPreview.length > 0 && (
         <Paper variant="outlined" sx={{ p: 2 }}>
           <Typography variant="subtitle1" gutterBottom>
-            Results Preview (first 5 rows)
+            Preview (first 5 rows)
           </Typography>
-          {batchPreview.map((line, index) => (
-            <Typography
-              variant="body2"
-              key={`${line}-${index}`}
-              sx={{ fontFamily: "monospace", fontSize: "0.8rem" }}
-            >
-              {line}
-            </Typography>
-          ))}
+          <TableContainer>
+            <Table size="small" aria-label="Batch results preview">
+              <TableHead>
+                <TableRow>
+                  {batchPreview[0].split(",").map((col) => (
+                    <TableCell
+                      key={col}
+                      sx={{ fontWeight: 600, whiteSpace: "nowrap" }}
+                    >
+                      {col}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {batchPreview.slice(1).map((line, index) => (
+                  <TableRow key={index}>
+                    {line.split(",").map((cell, ci) => (
+                      <TableCell key={ci} sx={{ fontSize: "0.8rem" }}>
+                        {cell}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </Paper>
       )}
       {batchDownloadUrl && (

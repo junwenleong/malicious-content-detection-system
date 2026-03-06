@@ -16,17 +16,17 @@ It returns a calibrated probability, a binary label (BENIGN/MALICIOUS), and a ri
 
 ### Demo Dataset
 
-| Metric            | Value                                          |
-| ----------------- | ---------------------------------------------- |
-| ROC AUC           | 0.9881 (test set, calibrated)                  |
-| Threshold         | 0.536 (F1-optimized on validation)             |
-| Precision         | 0.98 malicious / 0.94 benign                   |
-| Recall            | 0.93 malicious / 0.98 benign                   |
-| F1                | 0.96 (both classes)                            |
-| Accuracy          | 0.96                                           |
-| Calibration error | 0.0055 → 0.0025 (55% improvement via isotonic) |
-| Dataset           | 39,234 samples (50/50 balanced)                |
-| Latency           | ~4ms p50 single prediction                     |
+| Metric            | Value                                                      |
+| ----------------- | ---------------------------------------------------------- |
+| ROC AUC           | 0.9881 (test set, calibrated)                              |
+| Threshold         | 0.536 (F1-optimized on validation)                         |
+| Precision         | 0.98 malicious / 0.94 benign                               |
+| Recall            | 0.93 malicious / 0.98 benign                               |
+| F1                | 0.96 (both classes)                                        |
+| Accuracy          | 0.96                                                       |
+| Calibration error | 0.0055 → 0.0025 (55% improvement via isotonic calibration) |
+| Dataset           | 39,234 samples (50/50 balanced)                            |
+| Latency           | ~4ms p50 single prediction                                 |
 
 ### Reality Check
 

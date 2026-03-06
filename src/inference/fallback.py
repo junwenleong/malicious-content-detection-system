@@ -14,13 +14,7 @@ class FallbackPredictor:
     human oversight when the primary model is unavailable.
     """
 
-    def __init__(self, default_threshold: float = 0.5):
-        """Initialize fallback predictor.
-
-        Args:
-            default_threshold: Threshold for fallback decisions
-        """
-        self.default_threshold = default_threshold
+    def __init__(self) -> None:
         self.fallback_count = 0
 
     def predict_safe_fallback(
@@ -34,7 +28,7 @@ class FallbackPredictor:
 
         Args:
             texts: Input texts (used only for count)
-            threshold: Decision threshold
+            threshold: Decision threshold — returned as probability to trigger REVIEW action
 
         Returns:
             Tuple of (labels, probabilities, latency)
@@ -48,8 +42,8 @@ class FallbackPredictor:
             self.fallback_count,
         )
 
-        # Return threshold probability to trigger REVIEW action
-        # Label is UNKNOWN to signal degraded/fallback state to consumers
+        # Return threshold probability to trigger REVIEW action.
+        # Label is UNKNOWN to signal degraded/fallback state to consumers.
         count = len(texts)
         labels = ["UNKNOWN"] * count
         probs = [threshold] * count

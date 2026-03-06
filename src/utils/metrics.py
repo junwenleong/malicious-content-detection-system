@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 import threading
 from typing import Dict
 from prometheus_client import Counter, Histogram
@@ -18,7 +18,7 @@ class Metrics:
         self.predictions_by_class: Dict[str, int] = defaultdict(int)
         self.total_latency = 0.0
         self.errors = 0
-        self.start_time = datetime.now()
+        self.start_time = datetime.now(timezone.utc)
 
     def record_prediction(self, label: str, latency: float) -> None:
         with self._lock:
@@ -36,7 +36,7 @@ class Metrics:
 
     def get_stats(self) -> Dict[str, object]:
         with self._lock:
-            uptime = (datetime.now() - self.start_time).total_seconds()
+            uptime = (datetime.now(timezone.utc) - self.start_time).total_seconds()
             avg_latency = (
                 self.total_latency / self.total_requests
                 if self.total_requests > 0
