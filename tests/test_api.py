@@ -236,9 +236,9 @@ def test_batch_csv_injection_sanitization() -> None:
         # Verify no cell starts with a formula character (=, +, -, @)
         for line in response.text.strip().split("\n")[1:]:  # skip header
             for cell in line.split(","):
-                assert not cell.startswith(
-                    ("=", "+", "-", "@")
-                ), f"Potential CSV injection in cell: {cell!r}"
+                assert not cell.startswith(("=", "+", "-", "@")), (
+                    f"Potential CSV injection in cell: {cell!r}"
+                )
 
 
 @pytest.mark.integration

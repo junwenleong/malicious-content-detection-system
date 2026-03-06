@@ -148,9 +148,9 @@ class TestBatchAdversarial:
             # Verify output cells don't start with formula chars
             for line in response.text.strip().split("\n")[1:]:
                 for cell in line.split(","):
-                    assert not cell.startswith(
-                        ("=", "+", "-", "@")
-                    ), f"Unsanitized formula char in output: {cell!r}"
+                    assert not cell.startswith(("=", "+", "-", "@")), (
+                        f"Unsanitized formula char in output: {cell!r}"
+                    )
 
     def test_csv_with_unicode_bom(self) -> None:
         """CSV with UTF-8 BOM should be handled gracefully."""
