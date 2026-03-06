@@ -2,78 +2,73 @@
 
 ## Intended Use
 
-- **Internal Security Tooling:** Prototype for AI testing and red-team workflows.
-- Detect prompts that attempt to manipulate systems (prompt injection, jailbreak intent) and other abusive content before it reaches downstream services.
-- Provide a calibrated probability, a label (BENIGN/MALICIOUS), and a simple risk/action decision that downstream systems can consume.
-- Serve as a trust & safety guardrail in API pipelines and batch processing jobs.
+Internal security tooling prototype for AI red-teaming and trust & safety workflows. The model detects prompts that try to manipulate systems (prompt injection, jailbreak attempts) and flags them before they reach downstream services.
+
+It returns a calibrated probability, a binary label (BENIGN/MALICIOUS), and a risk-level recommendation (ALLOW/REVIEW/BLOCK) that downstream systems can act on directly.
 
 ## Out-of-Scope Use
 
-- Not a substitute for comprehensive safety enforcement or human review in high‑risk contexts.
-- Not designed to make legal, medical, or financial determinations.
-- The demo model is trained on a public dataset that emphasizes jailbreak attempts; it is not meant to be a universal detector for all forms of harm without retraining on enterprise data.
+- Not a replacement for human review in high-stakes contexts.
+- Not designed for legal, medical, or financial decisions.
+- The demo model focuses on jailbreak/injection patterns — it won't catch every form of harmful content without retraining on broader data.
 
-## Performance Metrics
+## Performance
 
-### Demo Dataset Performance
+### Demo Dataset
 
-- **ROC AUC**: 0.9881 (test set, calibrated model)
-- **Optimal Threshold**: 0.536 (F1-optimized on validation set)
-- **Test Set Performance** (at threshold 0.536):
-  - Precision: 0.98 (malicious class), 0.94 (benign class)
-  - Recall: 0.93 (malicious class), 0.98 (benign class)
-  - F1-score: 0.96 (both classes)
-  - Accuracy: 0.96
-- **Calibration**: Isotonic method, error 0.0055 → 0.0025 (55% improvement)
-- **Dataset**: 39,234 samples (perfect 50/50 balance): 27,463 train / 5,885 val / 5,886 test
-- **Latency**: ~4ms p50 for single predictions (local test)
-- **Throughput**: Scales with CPU cores; lightweight TF-IDF + Logistic Regression
+| Metric            | Value                                          |
+| ----------------- | ---------------------------------------------- |
+| ROC AUC           | 0.9881 (test set, calibrated)                  |
+| Threshold         | 0.536 (F1-optimized on validation)             |
+| Precision         | 0.98 malicious / 0.94 benign                   |
+| Recall            | 0.93 malicious / 0.98 benign                   |
+| F1                | 0.96 (both classes)                            |
+| Accuracy          | 0.96                                           |
+| Calibration error | 0.0055 → 0.0025 (55% improvement via isotonic) |
+| Dataset           | 39,234 samples (50/50 balanced)                |
+| Latency           | ~4ms p50 single prediction                     |
 
-### Important Context
+### Reality Check
 
-> **The public demo dataset is clean and well-balanced**, resulting in strong metrics (98.81% AUC). This demonstrates the calibration methodology and system architecture.
->
-> **Production comparison**: Real-world enterprise datasets with noisier, more ambiguous content typically show:
->
-> - ROC AUC: 85-92% (vs 98.81% demo)
-> - Calibration error reduction: 0.18 → 0.04 (vs 0.0055 → 0.0025 demo)
-> - More substantial impact from calibration on decision reliability
->
-> The system architecture and calibration approach remain valid; evaluate on your organization's data and update this card before production deployment.
+The demo dataset is clean and well-separated, which inflates the numbers. On real enterprise data with noisier, more ambiguous content, expect:
+
+- ROC AUC: 85-92%
+- Calibration error reduction: 0.18 → 0.04 (much larger absolute improvement)
+- More meaningful impact from calibration on decision reliability
+
+The methodology and architecture hold up — just re-evaluate metrics on your own data before going to production.
 
 ## Ethical Considerations
 
-- Bias and fairness: classifiers can reflect biases present in their training data. Use diverse, representative datasets and regularly audit outcomes across segments.
-- Transparency: return calibrated probability and threshold so downstream consumers understand the confidence behind decisions.
-- Human oversight: route high‑risk cases for review; do not block without appeal paths in high‑impact scenarios.
-- Privacy: do not log raw sensitive content at scale; use hashing/sampling where possible. Integrate with your data retention and deletion policies.
+- Classifiers inherit biases from their training data. Audit outcomes across different segments regularly.
+- We return the calibrated probability and threshold so consumers can see the confidence behind every decision — no black boxes.
+- High-risk cases should route to human review. Don't auto-block without an appeal path in high-impact scenarios.
+- Raw text is never logged at scale. Use hashing or sampling for audit trails, and follow your org's data retention policies.
 
-## Bias Evaluation Methodology
+## Bias Evaluation
 
-Before production deployment, evaluate the model against the following dimensions:
+Before production, evaluate the model on these dimensions:
 
-- **Language bias:** The training dataset is primarily English. Evaluate performance on non-English inputs and document degradation. Consider separate models for other languages.
-- **Domain bias:** The dataset emphasizes jailbreak/prompt injection patterns. Evaluate false-negative rates on direct harm queries, hate speech, and other harm categories relevant to your deployment context.
-- **Length bias:** Evaluate performance across short (<20 tokens), medium, and long (>200 tokens) inputs. TF-IDF features may underperform on very short texts.
-- **Adversarial robustness:** Test against Unicode homoglyph substitutions, leetspeak, and whitespace injection. NFKC normalization mitigates many but not all evasion techniques.
-- **Threshold sensitivity:** Document precision/recall trade-offs at ±0.05 around the chosen threshold. Ensure the threshold is re-evaluated on your organization's data before deployment.
-
-Document findings in `docs/FAIRNESS_AUDIT_RESULTS.md` before production deployment.
+- **Language:** Training data is primarily English. Test non-English inputs and document any degradation.
+- **Domain:** The dataset emphasizes jailbreak/injection. Check false-negative rates on direct harm, hate speech, and other categories relevant to your context.
+- **Length:** TF-IDF can underperform on very short texts (<20 tokens). Test across short, medium, and long inputs.
+- **Adversarial robustness:** Try Unicode homoglyphs, leetspeak, whitespace injection. NFKC normalization handles many of these, but not all.
+- **Threshold sensitivity:** Document precision/recall at ±0.05 around the chosen threshold. Re-tune on your data.
 
 ## Failure Modes
 
-- Data mismatch: if the production data distribution differs from the demo dataset, recall may drop for certain categories (e.g., direct harm questions vs. jailbreak prompts). Retrain with appropriate corpora.
-- Adversarial input: prompt injection patterns evolve. Track false negatives and iterate on training data and features (e.g., n‑grams, character patterns).
-- Operational failures: if the model or downstream dependencies fail, the circuit breaker opens to protect the service; rate limiting prevents brute‑force auth attempts. Health and metrics endpoints allow monitoring and fast rollback.
-- Confidence miscalibration: thresholds may need re‑tuning when the model or dataset changes. Re‑evaluate calibration and decision thresholds during releases.
-- Fallback state: when the primary model is unavailable, the `FallbackPredictor` returns `UNKNOWN` labels with `is_fallback: true` in the API response. Downstream consumers must handle this state explicitly — do not treat `UNKNOWN` as `BENIGN`.
+- **Data mismatch:** If production data looks different from the training set, recall drops — especially for categories the model hasn't seen (e.g., direct harm vs. jailbreaks). Retrain accordingly.
+- **Adversarial evolution:** Prompt injection patterns change over time. Track false negatives and iterate on training data.
+- **Operational failures:** Circuit breaker opens on repeated inference failures. Rate limiting handles brute-force auth. Health and metrics endpoints give you visibility for fast rollback.
+- **Calibration drift:** Thresholds may need re-tuning when the model or data changes. Re-evaluate during releases.
+- **Fallback state:** When the primary model is unavailable, `FallbackPredictor` returns `UNKNOWN` with `is_fallback: true`. Downstream consumers must handle this explicitly — never treat `UNKNOWN` as `BENIGN`.
 
 ## Human-in-the-Loop Escalation
 
-The `REVIEW` recommended action signals a prediction in the uncertain zone near the decision threshold. Downstream systems should:
+The `REVIEW` action means the prediction falls in the uncertain zone near the decision boundary. Downstream systems should:
 
-1. Route `REVIEW` items to a human review queue rather than auto-allowing or auto-blocking.
-2. Treat `is_fallback: true` responses as `REVIEW` regardless of label — the primary model was unavailable.
-3. Establish SLAs for human review turnaround (e.g., 4 hours for `REVIEW`, immediate for `BLOCK`).
-4. Feed human review outcomes back into the training pipeline to improve the model over time.
-5. Document the escalation path in your organization's operational runbook (`docs/OPERATIONS.md`).
+1. Route `REVIEW` items to a human queue — don't auto-allow or auto-block.
+2. Treat `is_fallback: true` responses as `REVIEW` regardless of label.
+3. Set SLAs for review turnaround (e.g., 4 hours for REVIEW, immediate for BLOCK).
+4. Feed human decisions back into the training pipeline to improve the model over time.
+5. Document the escalation path in your operational runbook.

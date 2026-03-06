@@ -1,0 +1,10 @@
+FROM node:20-alpine
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+EXPOSE 5173
+# node_modules lives in a Docker volume (see docker-compose.dev.yml).
+# On first run, the volume is empty so we install deps.
+# On subsequent runs, the volume already has them — skip straight to dev server.
+CMD ["sh", "-c", "if [ ! -d node_modules/vite ]; then echo 'Installing dependencies...'; npm ci; fi && exec npm run dev -- --host 0.0.0.0"]

@@ -72,6 +72,10 @@ playwright-output/
 # Build caches
 .ruff_cache/
 .pre-commit-cache/
+.run_hashes/
+
+# direnv
+.direnv/
 
 # Training logs
 training.log
@@ -100,7 +104,6 @@ Thumbs.db
 
 # Temporary documentation (don't commit these)
 docs/*_SUMMARY.md
-docs/*_GUIDE.md
 docs/*_FIXES.md
 
 # Secrets baseline (no longer used with TruffleHog)

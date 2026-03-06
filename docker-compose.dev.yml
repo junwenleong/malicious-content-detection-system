@@ -1,0 +1,56 @@
+# Development overrides — hot reload for both frontend and backend
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#
+# Frontend: Vite dev server with HMR on port $FRONTEND_PORT
+# Backend:  Uvicorn with --reload watching src/ and api/
+
+services:
+  backend:
+    build:
+      context: .
+      target: builder          # stop at builder stage — no need for final slim image
+    command: >
+      python -m uvicorn api.app:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+      --reload-dir api
+      --reload-dir src
+    volumes:
+      - ./api:/app/api
+      - ./src:/app/src
+      - ./models:/app/models
+    environment:
+      PYTHONUNBUFFERED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+    # Override healthcheck to be more lenient during dev restarts
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    # No resource limits in dev
+    deploy:
+      resources: {}
+    # Run as root in dev so volume mounts work without permission issues
+    user: root
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    # Override ports completely — base maps :80 (nginx), dev maps :5173 (vite)
+    # Compose merges port lists, so we use the same host port with the dev target
+    ports: !override
+      - "${FRONTEND_PORT:-5175}:5173"
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      # Prevent node_modules from being overwritten by host
+      - /app/node_modules
+    environment:
+      VITE_API_URL: "${VITE_API_URL:-http://localhost:8002}"
+    # Don't wait for backend healthcheck in dev — faster startup
+    depends_on:
+      - backend

@@ -3,32 +3,45 @@ import {
   Box,
   Container,
   CssBaseline,
+  IconButton,
   Paper,
   Tab,
   Tabs,
   ThemeProvider,
-  createTheme,
+  Tooltip,
   useMediaQuery,
 } from "@mui/material";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
+import LightModeIcon from "@mui/icons-material/LightMode";
 import { Header } from "./components/Header";
+
 import { ConnectionPanel } from "./components/ConnectionPanel";
 import { AnalyzeTab } from "./components/AnalyzeTab";
 import { BatchTab } from "./components/BatchTab";
+import { buildTheme } from "./theme";
 
 const defaultApiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 const defaultApiKey = import.meta.env.VITE_DEFAULT_API_KEY ?? "";
 
 function App() {
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
-  const theme = useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode: prefersDarkMode ? "dark" : "light",
-        },
-      }),
-    [prefersDarkMode],
+
+  // Manual override stored in localStorage; falls back to OS preference
+  const [modeOverride, setModeOverride] = useState<"light" | "dark" | null>(
+    () => {
+      const stored = localStorage.getItem("color_mode");
+      return stored === "light" || stored === "dark" ? stored : null;
+    },
   );
+
+  const mode = modeOverride ?? (prefersDarkMode ? "dark" : "light");
+  const theme = useMemo(() => buildTheme(mode), [mode]);
+
+  const toggleMode = () => {
+    const next = mode === "dark" ? "light" : "dark";
+    setModeOverride(next);
+    localStorage.setItem("color_mode", next);
+  };
 
   const [tab, setTab] = useState(0);
   const [apiUrl, setApiUrl] = useState(
@@ -105,7 +118,7 @@ function App() {
         <Paper sx={{ p: 0 }}>
           <Tabs
             value={tab}
-            onChange={(_, value) => setTab(value)}
+            onChange={(_, value: number) => setTab(value)}
             indicatorColor="primary"
             textColor="primary"
           >
@@ -118,6 +131,27 @@ function App() {
           </Box>
         </Paper>
       </Container>
+
+      {/* Floating mode toggle — bottom-right corner */}
+      <Tooltip title={`Switch to ${mode === "dark" ? "light" : "dark"} mode`}>
+        <IconButton
+          onClick={toggleMode}
+          aria-label={`Switch to ${mode === "dark" ? "light" : "dark"} mode`}
+          sx={{
+            position: "fixed",
+            bottom: 24,
+            right: 24,
+            bgcolor: "background.paper",
+            border: "1px solid",
+            borderColor: "divider",
+            boxShadow: 3,
+            "&:hover": { bgcolor: "action.hover" },
+          }}
+          size="large"
+        >
+          {mode === "dark" ? <LightModeIcon /> : <DarkModeIcon />}
+        </IconButton>
+      </Tooltip>
     </ThemeProvider>
   );
 }

@@ -1,182 +1,102 @@
 # Data Governance & Provenance
 
-## Dataset Information
-
-### Primary Training Dataset
+## Dataset
 
 **Name:** Malicious Prompt Detection Dataset (MPDD)
-**Source:** Kaggle (mohammedaminejebbar/malicious-prompt-detection-dataset-mpdd)
+**Source:** [Kaggle](https://www.kaggle.com/datasets/mohammedaminejebbar/malicious-prompt-detection-dataset-mpdd)
 **License:** CC0 1.0 Universal (Public Domain)
-**Access:** https://www.kaggle.com/datasets/mohammedaminejebbar/malicious-prompt-detection-dataset-mpdd
-**Size:** 39,234 samples (50/50 balanced: benign/malicious)
-**Last Updated:** [Check Kaggle for current version]
+**Size:** 39,234 samples (50/50 balanced)
 
-### Dataset Composition
+### Composition
 
-- **Benign Samples:** 19,617 (50%)
-  - Normal user queries
-  - Legitimate system prompts
-  - Standard API requests
+- 19,617 benign samples — normal queries, legitimate system prompts, standard API requests
+- 19,617 malicious samples — prompt injection, jailbreak attempts, adversarial inputs, policy violations
 
-- **Malicious Samples:** 19,617 (50%)
-  - Prompt injection attempts
-  - Jailbreak attempts
-  - Adversarial inputs
-  - Policy violation attempts
-
-### Data Splits
+### Splits
 
 ```
-Total: 39,234 samples
-├── Training: 27,463 (70%)
-├── Validation: 5,885 (15%)
-└── Test: 5,886 (15%)
+Total: 39,234
+├── Training:   27,463 (70%)
+├── Validation:  5,885 (15%)
+└── Test:        5,886 (15%)
 ```
 
-**Split Strategy:** Stratified random split to maintain class balance across all sets.
-**Random Seed:** 42 (reproducible)
-**Never Mixed:** Evaluation data never used for threshold tuning or hyperparameter selection.
+Stratified random split (seed=42) to maintain class balance. Evaluation data is never used for threshold tuning or hyperparameter selection.
 
-## Data Handling Practices
+## Data Processing Pipeline
 
-### Collection & Storage
+1. Load CSV into Pandas
+2. Unicode NFKC normalization (strips homoglyphs, control characters)
+3. Validate non-empty text, enforce length constraints (max 10k chars)
+4. Stratified 70/15/15 split
+5. TF-IDF vectorization (20k features, 1-2 grams)
+6. Logistic Regression with GridSearchCV
+7. Isotonic calibration (5-fold CV)
 
-- **Collection Method:** Public dataset download via Kaggle API
-- **Storage Location:** `data/raw/` (local development), mounted volume (Docker)
-- **Retention Policy:** Training data retained for model reproducibility; predictions logged separately
-- **Access Control:** Read-only in production; write access restricted to training scripts
+### Quality Checks
 
-### Data Processing Pipeline
+- Null/missing values validated at load time
+- Duplicates checked during EDA
+- Class balance verified at 50/50
+- UTF-8 encoding validated, NFKC normalization applied
+- Length distribution checked for outliers
 
-1. **Load:** CSV → Pandas DataFrame
-2. **Normalize:** Unicode NFKC normalization (removes homoglyphs, control characters)
-3. **Validate:** Non-empty text, length constraints (max 10k chars)
-4. **Split:** Stratified 70/15/15 train/val/test
-5. **Vectorize:** TF-IDF (20k features, 1-2 grams)
-6. **Train:** Logistic Regression with GridSearchCV
-7. **Calibrate:** Isotonic calibration (5-fold CV)
+## Privacy & Logging
 
-### Data Quality Checks
-
-- **Null/Missing Values:** None expected in public dataset; validated at load time
-- **Duplicates:** Checked during EDA; minimal duplicates expected
-- **Class Balance:** Verified at 50/50 split
-- **Text Encoding:** UTF-8 validation; NFKC normalization applied
-- **Length Distribution:** Checked for outliers; max 10k chars enforced
-
-## Privacy & Security
-
-### What We Log
-
-✅ **Safe to Log:**
+### What gets logged
 
 - Timestamp, correlation ID, model version
-- Predicted label (BENIGN/MALICIOUS)
-- Probability score (calibrated)
-- Risk level (LOW/MEDIUM/HIGH)
-- Recommended action (ALLOW/REVIEW/BLOCK)
-- Latency metrics
-- API endpoint, HTTP status code
+- Predicted label, calibrated probability, risk level, recommended action
+- Latency metrics, API endpoint, HTTP status code
 
-❌ **Never Log:**
+### What never gets logged
 
-- Raw input text (use SHA256 hash for debugging only)
+- Raw input text (SHA256 hash only, for debugging)
 - User identifiers or PII
 - Internal file paths or stack traces
 - API keys or secrets
 
-### Audit Logging
+### Audit logging
 
-- **Enabled:** `AUDIT_LOG_ENABLED=true` (production default)
-- **Format:** JSON with correlation IDs for traceability
-- **Retention:** Follow your organization's data retention policy
-- **Access:** Restricted to security and compliance teams
+JSON-structured with correlation IDs. Enabled by default in production (`AUDIT_LOG_ENABLED=true`). Restrict access to security and compliance teams. Follow your org's retention policy for prediction logs (e.g., 90 days). LRU cache (10k items) clears on service restart.
 
-### Data Deletion
+## Bias & Fairness
 
-- **Training Data:** Retained indefinitely for model reproducibility
-- **Prediction Logs:** Delete per your retention policy (e.g., 90 days)
-- **Cache:** LRU cache (10k items) cleared on service restart
-- **Backups:** Follow your backup retention policy
+### Known limitations
 
-## Bias & Fairness Considerations
+1. The dataset emphasizes jailbreak/injection patterns — it may underrepresent other forms of harm
+2. Primarily English content — performance on other languages is unknown
+3. Trained on AI/LLM-specific prompts — may not generalize to other domains without retraining
 
-### Known Limitations
+### Before production
 
-1. **Dataset Bias:** Public dataset emphasizes jailbreak/prompt injection patterns
-   - May underrepresent other forms of harm
-   - May reflect biases in data collection methodology
+- Evaluate model performance across demographic groups and text characteristics (length, language, domain)
+- Run fairness audits quarterly or after significant data distribution changes
+- Document findings before deploying to production
 
-2. **Language Bias:** Primarily English-language content
-   - Performance on non-English text unknown
-   - Recommend separate models for other languages
-
-3. **Domain Bias:** Trained on AI/LLM-specific prompts
-   - May not generalize to other domains
-   - Retrain on domain-specific data for production use
-
-### Fairness Audits
-
-- **Recommended:** Evaluate model performance across demographic groups
-- **Methodology:** Stratified evaluation by text characteristics (length, language, domain)
-- **Frequency:** Quarterly or after significant data distribution changes
-- **Documentation:** Record findings in `docs/FAIRNESS_AUDIT_RESULTS.md` (create this file before production deployment; it does not exist in the demo repository)
-
-## Model Versioning & Reproducibility
-
-### Model Artifacts
+## Model Artifacts
 
 ```
 models/
-├── malicious_content_detector_calibrated.pkl    (trained model)
-├── malicious_content_detector_config.pkl        (config & metadata)
-└── README.md                                     (this file)
+├── malicious_content_detector_calibrated.pkl   (trained model)
+└── malicious_content_detector_config.pkl       (config & metadata)
 ```
 
-### Integrity Verification
+SHA256 checksums verified at startup. Training is reproducible via `scripts/train_model.py` with seed=42.
 
-- **SHA256 Checksums:** Verified at startup
-- **Version Tracking:** `MODEL_VERSION` in config
-- **Training Script:** `scripts/train_model.py` (reproducible with seed=42)
-- **Hyperparameters:** Documented in training config
-
-### Retraining Triggers
-
-Retrain the model when:
+### When to retrain
 
 - False negative rate exceeds 5% on recent data
-- Data distribution significantly changes
-- New attack patterns emerge
-- Quarterly scheduled retraining (best practice)
+- Data distribution shifts significantly
+- New attack patterns emerge that the model misses
+- Quarterly as a baseline practice
 
-## Production Data Considerations
+## Production Checklist
 
-### Before Deploying to Production
+Before deploying with real data:
 
-1. **Evaluate on Your Data:**
-   - Train/test on organization-specific dataset
-   - Document performance metrics
-   - Update MODEL_CARD.md with real-world metrics
-
-2. **Bias Audit:**
-   - Evaluate across demographic groups
-   - Document fairness findings
-   - Establish monitoring thresholds
-
-3. **Compliance Review:**
-   - Verify data handling aligns with regulations (GDPR, CCPA, etc.)
-   - Document data retention policies
-   - Establish audit logging procedures
-
-4. **Operational Readiness:**
-   - Set up monitoring and alerting
-   - Document runbooks for model failures
-   - Establish rollback procedures
-
-## References
-
-- **Training Script:** `scripts/train_model.py`
-- **Model Card:** `MODEL_CARD.md`
-- **Threat Model:** `docs/THREAT_MODEL.md`
-- **Scaling Strategy:** `docs/SCALING_STRATEGY.md`
-- **Kaggle Dataset:** https://www.kaggle.com/datasets/mohammedaminejebbar/malicious-prompt-detection-dataset-mpdd
+1. Train and evaluate on your organization's dataset
+2. Update [MODEL_CARD.md](../MODEL_CARD.md) with real-world metrics
+3. Run a bias audit and document findings
+4. Verify data handling aligns with applicable regulations (GDPR, CCPA, etc.)
+5. Set up monitoring, alerting, and rollback procedures
