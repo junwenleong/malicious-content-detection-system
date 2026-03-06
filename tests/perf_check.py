@@ -48,9 +48,9 @@ def test_inference_latency_single(client: TestClient) -> None:
     total_latency_ms = (end_time - start_time) * 1000
     print(f"\nSingle Request Latency: {total_latency_ms:.2f}ms")
 
-    assert (
-        total_latency_ms < LATENCY_THRESHOLD_SINGLE
-    ), f"Latency too high: {total_latency_ms:.2f}ms > {LATENCY_THRESHOLD_SINGLE}ms"
+    assert total_latency_ms < LATENCY_THRESHOLD_SINGLE, (
+        f"Latency too high: {total_latency_ms:.2f}ms > {LATENCY_THRESHOLD_SINGLE}ms"
+    )
 
 
 def test_inference_latency_batch(client: TestClient) -> None:
@@ -72,9 +72,9 @@ def test_inference_latency_batch(client: TestClient) -> None:
     total_latency_ms = (end_time - start_time) * 1000
     print(f"\nBatch (10) Request Latency: {total_latency_ms:.2f}ms")
 
-    assert (
-        total_latency_ms < LATENCY_THRESHOLD_BATCH
-    ), f"Batch latency too high: {total_latency_ms:.2f}ms > {LATENCY_THRESHOLD_BATCH}ms"
+    assert total_latency_ms < LATENCY_THRESHOLD_BATCH, (
+        f"Batch latency too high: {total_latency_ms:.2f}ms > {LATENCY_THRESHOLD_BATCH}ms"
+    )
 
 
 if __name__ == "__main__":
