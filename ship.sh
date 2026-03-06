@@ -72,9 +72,11 @@ else
 fi
 echo "✅ Tests passed!"
 
-# --- Format frontend --------------------------------------------------
+# --- Format code ------------------------------------------------------
 
-echo "🎨 Formatting code with Prettier..."
+echo "🎨 Formatting code..."
+ruff check --fix --ignore E741 src/ api/ tests/ 2>/dev/null || true
+ruff format src/ api/ tests/ 2>/dev/null || true
 if command -v npx &> /dev/null && [ -d "frontend" ]; then
     (cd frontend && npx prettier --write "**/*.{js,jsx,ts,tsx,json,css,scss,md,yaml,yml}" --ignore-unknown) 2>/dev/null || true
 fi
@@ -110,23 +112,7 @@ commit_failed() {
 }
 
 if ! git commit -S -m "$COMMIT_MSG"; then
-    # Pre-commit hooks may have auto-fixed files (they land as unstaged)
-    if ! git diff --quiet; then
-        echo "⚠️  Pre-commit hooks auto-fixed some files. Re-staging..."
-        git add -u
-        # Verify there's actually something staged before retrying
-        if git diff --cached --quiet; then
-            echo "ℹ️  No changes to commit after re-staging (pre-commit hooks produced identical output)."
-        else
-            echo "✅ Auto-fixes staged. Committing again..."
-            git commit -S -m "$COMMIT_MSG" || commit_failed
-        fi
-    # Nothing to commit (working tree clean after auto-fixes applied everything)
-    elif git diff --cached --quiet; then
-        echo "ℹ️  No changes to commit (working tree clean after auto-fixes)."
-    else
-        commit_failed
-    fi
+    commit_failed
 fi
 
 CURRENT_BRANCH=$(git branch --show-current)

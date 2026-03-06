@@ -29,14 +29,16 @@ repos:
         pass_filenames: false
 
   # Python: Ruff (replaces Flake8, isort, Black - 100x faster)
+  # Check-only: ship.sh runs ruff --fix before committing, so no auto-fix needed here
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.8.4
     hooks:
       - id: ruff
-        name: ruff (lint + auto-fix)
-        args: [--fix, --ignore, E741]
+        name: ruff (lint)
+        args: [--ignore, E741]
       - id: ruff-format
-        name: ruff (format)
+        name: ruff (format check)
+        args: [--check]
 
   # Python: Mypy (type checking - full project for consistency)
   - repo: local
@@ -50,14 +52,16 @@ repos:
         args: []
         pass_filenames: false
 
-  # Frontend: Prettier (auto-format - faster than ESLint for formatting)
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v4.0.0-alpha.8
+  # Frontend: Prettier (check-only: ship.sh runs prettier --write before committing)
+  - repo: local
     hooks:
       - id: prettier
-        name: prettier (format)
+        name: prettier (format check)
+        entry: bash -c 'cd frontend && npx prettier --check "**/*.{js,jsx,ts,tsx,json,css,md}" --ignore-unknown'
+        language: system
         files: \.(js|jsx|ts|tsx|json|css|md)$
         exclude: ^(package-lock\.json|.*\.min\.(js|css))$
+        pass_filenames: false
 
   # Frontend: ESLint (logic errors only, not formatting)
   - repo: local
@@ -78,19 +82,3 @@ repos:
         language: system
         files: ^frontend/.*\.(ts|tsx)$
         pass_filenames: false
-
-  # Python: Fast unit tests (< 2 seconds, critical paths only)
-  # Full test suite runs in CI/CD and ship.sh
-  # DISABLED: Pre-commit environment doesn't have venv activated
-  # Tests run in ship.sh before commit, so this is redundant
-  - repo: local
-    hooks:
-      - id: pytest-fast
-        name: pytest (fast unit tests)
-        entry: pytest
-        language: system
-        types: [python]
-        args: [-m, "not slow and not integration", --tb=short, -q]
-        pass_filenames: false
-        verbose: true
-        stages: [manual]  # Only run if explicitly triggered
