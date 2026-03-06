@@ -46,8 +46,8 @@ This document clarifies when to run quality checks and how to avoid duplication.
 - Large file detection (>1MB)
 - Merge conflict detection
 - Secret detection (TruffleHog - replaces detect-private-key)
-- Python: ruff (lint + format), mypy (changed files only)
-- Frontend: Prettier (format), ESLint (lint), TypeScript (changed files only)
+- Python: ruff (lint check + format check), mypy (changed files only)
+- Frontend: Prettier (format check), ESLint (lint), TypeScript (changed files only)
 - Fast unit tests only (< 2 seconds, marked with `@pytest.mark.unit` or no marker)
 
 ## When to Run What
@@ -210,7 +210,7 @@ git commit  # Pre-commit catches issues in 5 seconds
 | Check Type      | When       | Duration | Auto-Fix | Blocks Commit | Runs Tests      |
 | --------------- | ---------- | -------- | -------- | ------------- | --------------- |
 | IDE Linting     | On save    | <1s      | ✓        | ✗             | ✗               |
-| Pre-commit Hook | On commit  | <5s      | ✓        | ✓             | Fast only       |
+| Pre-commit Hook | On commit  | <5s      | ✗        | ✓             | Fast only       |
 | ship.sh         | Manual     | ~10s     | ✓        | ✓             | Full suite      |
 | Manual lint.sh  | On demand  | 5-10s    | ✓        | ✗             | ✗               |
 | CI/CD Pipeline  | On push/PR | 2-5min   | ✗        | ✓             | Full + coverage |
