@@ -8,6 +8,7 @@ import csv
 import os
 import sys
 import uuid
+import pytest
 from fastapi.testclient import TestClient
 
 # Add project root to sys.path
@@ -56,6 +57,7 @@ def _create_client() -> TestClient:
     return TestClient(app)
 
 
+@pytest.mark.integration
 def test_health_endpoint() -> None:
     with _create_client() as client:
         response = client.get("/health")
@@ -70,6 +72,7 @@ def test_health_endpoint() -> None:
             assert "threshold" not in data["circuit_breaker"]
 
 
+@pytest.mark.integration
 def test_predict_endpoint() -> None:
     with _create_client() as client:
         model_info = client.get(
@@ -88,6 +91,7 @@ def test_predict_endpoint() -> None:
         assert data["predictions"][0]["threshold"] == model_info["decision_threshold"]
 
 
+@pytest.mark.integration
 def test_model_info_endpoint() -> None:
     with _create_client() as client:
         # Requires auth
@@ -104,6 +108,7 @@ def test_model_info_endpoint() -> None:
         assert data["decision_threshold"] is not None
 
 
+@pytest.mark.integration
 def test_threshold_behavior_extreme() -> None:
     with _create_client() as client:
         response = client.post(
@@ -120,6 +125,7 @@ def test_threshold_behavior_extreme() -> None:
             assert prediction["label"] == "BENIGN"
 
 
+@pytest.mark.integration
 def test_metrics_endpoint() -> None:
     with _create_client() as client:
         response = client.get(
@@ -130,6 +136,7 @@ def test_metrics_endpoint() -> None:
         assert "http_requests_total" in response.text
 
 
+@pytest.mark.integration
 def test_batch_endpoint() -> None:
     csv_content = io.StringIO()
     writer = csv.writer(csv_content)
@@ -164,6 +171,7 @@ def test_batch_endpoint() -> None:
         assert "probability" in header
 
 
+@pytest.mark.integration
 def test_predict_rejects_whitespace_only_text() -> None:
     """Ensure texts that are only whitespace are rejected after stripping."""
     with _create_client() as client:
@@ -176,6 +184,7 @@ def test_predict_rejects_whitespace_only_text() -> None:
         assert "Empty text" in response.json()["detail"][0]["msg"]
 
 
+@pytest.mark.integration
 def test_metrics_endpoint_requires_auth() -> None:
     """Metrics endpoint must require API key authentication."""
     with _create_client() as client:
@@ -191,6 +200,7 @@ def test_metrics_endpoint_requires_auth() -> None:
         assert response.status_code == 200
 
 
+@pytest.mark.integration
 def test_health_does_not_expose_circuit_breaker_internals() -> None:
     """Health endpoint must not leak failure counts or thresholds."""
     with _create_client() as client:
@@ -202,6 +212,7 @@ def test_health_does_not_expose_circuit_breaker_internals() -> None:
             assert "threshold" not in data["circuit_breaker"]
 
 
+@pytest.mark.integration
 def test_batch_csv_injection_sanitization() -> None:
     """Verify CSV output cells starting with formula chars are sanitized."""
     # Craft a text that, if unsanitized, would produce a formula-starting label
@@ -230,6 +241,7 @@ def test_batch_csv_injection_sanitization() -> None:
                 ), f"Potential CSV injection in cell: {cell!r}"
 
 
+@pytest.mark.integration
 def test_batch_missing_text_column() -> None:
     """Batch endpoint rejects CSV without 'text' column."""
     csv_content = io.StringIO()
@@ -251,6 +263,7 @@ def test_batch_missing_text_column() -> None:
         assert "text" in response.json()["detail"].lower()
 
 
+@pytest.mark.integration
 def test_auth_rate_limiting_lockout() -> None:
     """After max failed auth attempts, client gets 429."""
     with _create_client() as client:
@@ -272,6 +285,7 @@ def test_auth_rate_limiting_lockout() -> None:
         assert "Retry-After" in response.headers
 
 
+@pytest.mark.integration
 def test_health_does_not_expose_model_version() -> None:
     """Health endpoint must not leak model version to unauthenticated callers."""
     with _create_client() as client:
