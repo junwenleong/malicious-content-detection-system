@@ -1,47 +1,41 @@
 # Malicious Content Detection UI
 
-A modern React + TypeScript application for interacting with the Malicious Content Detection API.
+React + TypeScript dashboard for interacting with the detection API. Built with Vite and Material-UI.
 
 ## Features
 
-- **Single Text Analysis**: Real-time analysis with confidence scores and risk levels.
-- **Batch Processing**: Upload CSV files for bulk analysis.
-- **Secure Connection**: Configurable API Endpoint and API Key (persisted locally).
-- **Responsive Design**: Optimized for desktop and mobile.
+- Single text analysis with confidence scores and risk levels
+- Batch CSV upload for bulk processing
+- Configurable API endpoint and key (persisted in local storage)
+- Responsive layout for desktop and mobile
 
 ## Setup
 
-### Prerequisites
-
-- Node.js 18+
-- Back-end API running
-
-### Installation
+Requires Node.js 18+ and the backend API running.
 
 ```bash
 npm install
-```
-
-### Development
-
-```bash
 npm run dev
 ```
 
-### Configuration
-
-By default, the UI connects to `http://localhost:8000`.
-You can change this in the "Connection" panel or via `.env`:
+Connects to `http://localhost:8000` by default. Change via the Connection panel in the UI or in `.env`:
 
 ```
 VITE_API_URL=http://localhost:8000
 ```
 
-## Docker
-
-The frontend is included in the main `docker-compose.yml`.
-To build manually:
+## Build
 
 ```bash
-docker build -t detection-ui .
+npm run build    # Production build
+npm run preview  # Preview the build locally
+npm run lint     # ESLint
+```
+
+## Docker
+
+Included in the root `docker-compose.yml`. To build standalone:
+
+```bash
+docker build -t detection-ui --build-arg VITE_API_URL=http://localhost:8000 .
 ```
