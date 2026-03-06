@@ -34,13 +34,13 @@ jobs:
       run: |
         ruff check src/ api/ tests/
 
-    - name: Type check with Mypy
-      run: |
-        mypy src/ api/
-
     - name: Format check with Ruff
       run: |
         ruff format --check src/ api/ tests/
+
+    - name: Type check with Mypy
+      run: |
+        mypy src/ api/
 
     - name: Run unit tests
       run: |
