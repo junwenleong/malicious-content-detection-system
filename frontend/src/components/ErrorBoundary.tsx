@@ -1,4 +1,4 @@
-import { Component, ReactNode } from "react";
+import { Component, type ReactNode } from "react";
 import { Alert, Box, Button, Typography } from "@mui/material";
 
 interface Props {
@@ -50,7 +50,7 @@ export class ErrorBoundary extends Component<Props, State> {
               An unexpected error occurred. Try refreshing the page or contact
               support if the problem persists.
             </Typography>
-            {process.env.NODE_ENV === "development" && (
+            {import.meta.env.DEV && (
               <Typography
                 variant="caption"
                 component="pre"
