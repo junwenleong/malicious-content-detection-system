@@ -5,29 +5,19 @@ Unicode homoglyphs, control character injection, oversized inputs,
 and boundary conditions that attackers commonly exploit.
 """
 
-import io
 import csv
+import io
 import os
 import sys
-import uuid
 
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import src.config
+from api.app import app
 
 
 def _create_client() -> TestClient:
-    if (
-        not src.config.settings.api_keys
-        or "test-api-key" not in src.config.settings.api_keys[0]
-    ):
-        test_key = "test-api-key-" + str(uuid.uuid4())
-        src.config.settings.api_key = test_key
-        src.config.settings.api_keys = [test_key]
-
-    from api.app import app
-
     return TestClient(app)
 
 

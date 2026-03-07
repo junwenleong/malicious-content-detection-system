@@ -1,5 +1,12 @@
 from typing import Tuple
 
+# Risk level thresholds (configurable for different deployment scenarios)
+_HIGH_RISK_THRESHOLD = 0.85
+_MEDIUM_RISK_THRESHOLD = 0.6
+
+# Action decision margins (relative to decision threshold)
+_BLOCK_MARGIN = 0.15  # Block if probability >= threshold + margin
+
 
 def policy_decision(probability: float, threshold: float) -> Tuple[str, str]:
     """Determine risk level and recommended action based on probability and threshold.
@@ -17,14 +24,16 @@ def policy_decision(probability: float, threshold: float) -> Tuple[str, str]:
     # Clamp threshold to valid range
     threshold = max(0.01, min(0.99, threshold))
 
-    if probability >= 0.85:
+    # Determine risk level based on probability
+    if probability >= _HIGH_RISK_THRESHOLD:
         risk_level = "HIGH"
-    elif probability >= 0.6:
+    elif probability >= _MEDIUM_RISK_THRESHOLD:
         risk_level = "MEDIUM"
     else:
         risk_level = "LOW"
 
-    if probability >= threshold + 0.15:
+    # Determine action based on threshold and margin
+    if probability >= threshold + _BLOCK_MARGIN:
         recommended_action = "BLOCK"
     elif probability >= threshold:
         recommended_action = "REVIEW"
