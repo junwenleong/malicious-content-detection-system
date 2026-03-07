@@ -238,11 +238,13 @@ See [.github/workflows/README.md](.github/workflows/README.md) for details.
 | Document                                      | What it covers                                                |
 | --------------------------------------------- | ------------------------------------------------------------- |
 | [API Reference](docs/API_REFERENCE.md)        | Endpoints, auth, request/response formats, client examples    |
+| [Client Examples](docs/CLIENT_EXAMPLES.md)    | Python, JavaScript, Go, cURL integration examples             |
 | [Model Card](MODEL_CARD.md)                   | Performance, bias evaluation, failure modes, escalation paths |
 | [Deployment Guide](docs/DEPLOYMENT.md)        | Local, Docker, cloud (AWS/GCP/Azure), Kubernetes              |
 | [Threat Model](docs/THREAT_MODEL.md)          | Attack vectors, mitigations, residual risk                    |
 | [Scaling Strategy](docs/SCALING_STRATEGY.md)  | Bottlenecks, what changes at 10k and 100k RPS                 |
 | [Operations](docs/OPERATIONS.md)              | Health checks, key rotation, log analysis, alerting           |
+| [Operational Runbook](docs/OPERATIONAL_RUNBOOK.md) | Troubleshooting guide, common issues, disaster recovery  |
 | [Data Governance](docs/DATA_GOVERNANCE.md)    | Dataset provenance, privacy, bias considerations              |
 | [ADR 003](docs/adr/003-security-hardening.md) | Security hardening decisions and rationale                    |
 

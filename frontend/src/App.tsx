@@ -5,6 +5,7 @@ import { Sidebar } from "./components/Sidebar";
 import { ConnectionPanel } from "./components/ConnectionPanel";
 import { AnalyzeTab } from "./components/AnalyzeTab";
 import { BatchTab } from "./components/BatchTab";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { buildTheme } from "./theme";
 
 const defaultApiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
@@ -90,55 +91,57 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      {/* Full-height app shell */}
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          minHeight: "100vh",
-          bgcolor: "background.default",
-        }}
-      >
-        <Header mode={mode} onToggleMode={toggleMode} />
+      <ErrorBoundary>
+        {/* Full-height app shell */}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            minHeight: "100vh",
+            bgcolor: "background.default",
+          }}
+        >
+          <Header mode={mode} onToggleMode={toggleMode} />
 
-        <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
-          {/* Left sidebar */}
-          <Sidebar
-            activeNav={activeNav}
-            onNavChange={setActiveNav}
-            healthStatus={healthStatus}
-          />
-
-          {/* Main workspace */}
-          <Box
-            component="main"
-            sx={{
-              flex: 1,
-              overflow: "auto",
-              p: { xs: 2, md: 3 },
-              display: "flex",
-              flexDirection: "column",
-              gap: 3,
-            }}
-          >
-            <ConnectionPanel
-              apiUrl={apiUrl}
-              setApiUrl={setApiUrl}
-              apiKey={apiKey}
-              setApiKey={setApiKey}
+          <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
+            {/* Left sidebar */}
+            <Sidebar
+              activeNav={activeNav}
+              onNavChange={setActiveNav}
               healthStatus={healthStatus}
-              healthMessage={healthMessage}
             />
 
-            {activeNav === "analyze" && (
-              <AnalyzeTab apiUrl={apiUrl} headers={headers} />
-            )}
-            {activeNav === "batch" && (
-              <BatchTab apiUrl={apiUrl} apiKey={apiKey} />
-            )}
+            {/* Main workspace */}
+            <Box
+              component="main"
+              sx={{
+                flex: 1,
+                overflow: "auto",
+                p: { xs: 2, md: 3 },
+                display: "flex",
+                flexDirection: "column",
+                gap: 3,
+              }}
+            >
+              <ConnectionPanel
+                apiUrl={apiUrl}
+                setApiUrl={setApiUrl}
+                apiKey={apiKey}
+                setApiKey={setApiKey}
+                healthStatus={healthStatus}
+                healthMessage={healthMessage}
+              />
+
+              {activeNav === "analyze" && (
+                <AnalyzeTab apiUrl={apiUrl} headers={headers} />
+              )}
+              {activeNav === "batch" && (
+                <BatchTab apiUrl={apiUrl} apiKey={apiKey} />
+              )}
+            </Box>
           </Box>
         </Box>
-      </Box>
+      </ErrorBoundary>
     </ThemeProvider>
   );
 }

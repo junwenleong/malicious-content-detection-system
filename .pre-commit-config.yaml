@@ -82,3 +82,15 @@ repos:
         language: system
         files: ^frontend/.*\.(ts|tsx)$
         pass_filenames: false
+
+  # Python: Smart test runner (pre-push only)
+  # Maps changed files to related tests, runs critical integration tests always
+  # Falls back to full suite if no mapping found (safety net)
+  - repo: local
+    hooks:
+      - id: pytest-smart
+        name: pytest (smart - changed files only)
+        entry: python scripts/run_tests_for_changed_files.py
+        language: system
+        pass_filenames: false
+        stages: [pre-push]

@@ -2,12 +2,12 @@
 Basic API tests to demonstrate testing setup.
 """
 
+import csv
 import importlib
 import io
-import csv
 import os
 import sys
-import uuid
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import src.config
+from api.app import app
 
 
 def test_imports() -> None:
@@ -41,19 +42,6 @@ def test_requirements() -> None:
 
 
 def _create_client() -> TestClient:
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-    # Generate a key if not already set for testing
-    if (
-        not src.config.settings.api_keys
-        or "test-api-key" not in src.config.settings.api_keys[0]
-    ):
-        test_key = "test-api-key-" + str(uuid.uuid4())
-        src.config.settings.api_key = test_key
-        src.config.settings.api_keys = [test_key]
-
-    from api.app import app
-
     return TestClient(app)
 
 

@@ -15,18 +15,8 @@ LATENCY_THRESHOLD_BATCH = 200
 
 @pytest.fixture
 def client() -> Generator[TestClient, None, None]:
-    # Ensure API key is set for tests
-    test_key = "perf-test-key"
-    if not settings.api_keys:
-        settings.api_keys = [test_key]
-    elif test_key not in settings.api_keys:
-        settings.api_keys.append(test_key)
-
     with TestClient(app) as c:
         yield c
-
-    # Cleanup not strictly necessary for simple list, but good practice
-    # (Leaving it as is for simplicity in this script context)
 
 
 def test_inference_latency_single(client: TestClient) -> None:
@@ -34,7 +24,7 @@ def test_inference_latency_single(client: TestClient) -> None:
     Ensure inference latency is under threshold for single input.
     """
     text = "This is a test sentence to check latency."
-    headers = {"x-api-key": "perf-test-key"}
+    headers = {"x-api-key": settings.api_keys[0]}
 
     # Warmup
     client.post("/v1/predict", json={"texts": [text]}, headers=headers)
@@ -58,7 +48,7 @@ def test_inference_latency_batch(client: TestClient) -> None:
     Ensure batch processing scales reasonably.
     """
     texts = ["This is sentence number " + str(i) for i in range(10)]
-    headers = {"x-api-key": "perf-test-key"}
+    headers = {"x-api-key": settings.api_keys[0]}
 
     # Warmup
     client.post("/v1/predict", json={"texts": texts}, headers=headers)

@@ -1,5 +1,7 @@
 # API Reference
 
+> **Quick Start:** See [Client Examples](CLIENT_EXAMPLES.md) for Python, JavaScript, Go, and cURL examples.
+
 ## Base URL
 
 ```
