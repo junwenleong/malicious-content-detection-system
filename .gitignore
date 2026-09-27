@@ -108,3 +108,6 @@ docs/*_FIXES.md
 
 # Secrets baseline (no longer used with TruffleHog)
 .secrets.baseline
+
+# AI-assistant config / internal planning notes
+.kiro/
